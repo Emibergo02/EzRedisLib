@@ -48,6 +48,7 @@ public class RedisMessagingHandler {
 
     /**
      * Creates a new RedisMessagingHandler.
+     *
      * @param host The host of the redis server.
      * @param port The port of the redis server.
      * @param user The user of the redis server (null for none).
@@ -58,105 +59,27 @@ public class RedisMessagingHandler {
         scheduler = new ForkJoinPool();
         pool = new JedisPool(buildPoolConfig(), host, port, user, pass);
 
-        if(!testConnection()){
+        if (!testConnection()) {
             throw new InstantiationException("Could not connect to redis server (down or inaccessible)");
         }
     }
+
     /**
      * Creates a new RedisMessagingHandler.
+     *
      * @param poolConfig The pool config of the redis client.
-     * @param host The host of the redis server.
-     * @param port The port of the redis server.
-     * @param user The user of the redis server (null for none).
-     * @param pass The password of the redis server (null for none).
+     * @param host       The host of the redis server.
+     * @param port       The port of the redis server.
+     * @param user       The user of the redis server (null for none).
+     * @param pass       The password of the redis server (null for none).
      * @throws InstantiationException If the connection to the redis server fails.
      */
-    public RedisMessagingHandler(@NotNull JedisPoolConfig poolConfig,@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
+    public RedisMessagingHandler(@NotNull JedisPoolConfig poolConfig, @NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
         scheduler = new ForkJoinPool();
         pool = new JedisPool(poolConfig, host, port, user, pass);
 
-        if(!testConnection()){
+        if (!testConnection()) {
             throw new InstantiationException("Could not connect to redis server (down or inaccessible)");
-        }
-    }
-
-    /**
-     * Test if redis is up and running.
-     * @return false if redis is down or inaccessible.
-     */
-    private boolean testConnection() {
-        try (Jedis jedis = pool.getResource()) {
-            return jedis.isConnected();
-        } catch (Exception exception) {
-            exception.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * Registers incoming channel packets
-     * @param messagingChannel The channel to register.
-     * @return true if the channel is registered successfully.
-     */
-    public boolean registerChannelListener(@NotNull ChannelListener<?> messagingChannel) {
-        if (messagingChannel.getChannelName().trim().length() > 8) {
-            return false;
-        }
-        channelsByName.put(messagingChannel.getChannelName(), messagingChannel);
-
-        //Extracts packet type from generic parameter of the channel listener
-        Type packetType = ((ParameterizedType) messagingChannel.getClass().getGenericInterfaces()[0]).getActualTypeArguments()[0];
-
-        scheduler.execute(() ->{
-            try (Jedis jedis = pool.getResource()) {
-                jedis.subscribe(new JedisPubSub() {
-                    @Override
-                    public void onMessage(String channel, String message) {
-                        messagingChannel.read(gson.fromJson(message, packetType));
-                    }
-                }, messagingChannel.getChannelName());
-            }
-        });
-        return true;
-    }
-
-    /**
-     * Check if channel is registered.
-     * @param channel channel to check.
-     * @return true if already registered.
-     */
-    public boolean isChannelRegistered(String channel) {
-        return channelsByName.containsKey(channel);
-    }
-
-    /**
-     * Publish packet to channel
-     * @param channel channel to publish to.
-     * @param message message to publish.
-     */
-    public void sendPacket(String channel, MessagingPacket message) {
-            publish(channel, message);
-
-    }
-    public void sendPacketAsync(String channel, MessagingPacket message) {
-            scheduler.execute(() -> sendPacket(channel, message));
-    }
-
-    public void sendPackets(String channel, List<MessagingPacket> messages) {
-            messages.forEach(message -> publish(channel, message));
-    }
-    public void sendPacketsAsync(String channel, List<MessagingPacket> messages) {
-            scheduler.execute(() -> sendPackets(channel, messages));
-
-    }
-
-    public @Nullable ChannelListener<?> getChannelByName(String name) {
-        return channelsByName.get(name);
-    }
-
-    private void publish(String channel, @NotNull MessagingPacket message) {
-        try (Jedis jedis = pool.getResource()) {
-            jedis.publish(channel, gson.toJson(message));
         }
     }
 
@@ -174,7 +97,8 @@ public class RedisMessagingHandler {
         poolConfig.setBlockWhenExhausted(true);
         return poolConfig;
     }
-    public static @NotNull JedisPoolConfig buildPoolConfig(int totalPoolConnections,int maxIdleConnections,int minIdleConnections) {
+
+    public static @NotNull JedisPoolConfig buildPoolConfig(int totalPoolConnections, int maxIdleConnections, int minIdleConnections) {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(totalPoolConnections);
         poolConfig.setMaxIdle(maxIdleConnections);
@@ -187,5 +111,90 @@ public class RedisMessagingHandler {
         poolConfig.setNumTestsPerEvictionRun(3);
         poolConfig.setBlockWhenExhausted(true);
         return poolConfig;
+    }
+
+    /**
+     * Test if redis is up and running.
+     *
+     * @return false if redis is down or inaccessible.
+     */
+    private boolean testConnection() {
+        try (Jedis jedis = pool.getResource()) {
+            return jedis.isConnected();
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Registers incoming channel packets
+     *
+     * @param messagingChannel The channel to register.
+     * @return true if the channel is registered successfully.
+     */
+    public boolean registerChannelListener(@NotNull ChannelListener<?> messagingChannel) {
+        if (messagingChannel.getChannelName().trim().length() > 8) {
+            return false;
+        }
+        channelsByName.put(messagingChannel.getChannelName(), messagingChannel);
+
+        //Extracts packet type from generic parameter of the channel listener
+        Type packetType = ((ParameterizedType) messagingChannel.getClass().getGenericInterfaces()[0]).getActualTypeArguments()[0];
+
+        scheduler.execute(() -> {
+            try (Jedis jedis = pool.getResource()) {
+                jedis.subscribe(new JedisPubSub() {
+                    @Override
+                    public void onMessage(String channel, String message) {
+                        messagingChannel.read(gson.fromJson(message, packetType));
+                    }
+                }, messagingChannel.getChannelName());
+            }
+        });
+        return true;
+    }
+
+    /**
+     * Check if channel is registered.
+     *
+     * @param channel channel to check.
+     * @return true if already registered.
+     */
+    public boolean isChannelRegistered(String channel) {
+        return channelsByName.containsKey(channel);
+    }
+
+    /**
+     * Publish packet to channel
+     *
+     * @param channel channel to publish to.
+     * @param message message to publish.
+     */
+    public void sendPacket(String channel, MessagingPacket message) {
+        publish(channel, message);
+
+    }
+
+    public void sendPacketAsync(String channel, MessagingPacket message) {
+        scheduler.execute(() -> sendPacket(channel, message));
+    }
+
+    public void sendPackets(String channel, List<MessagingPacket> messages) {
+        messages.forEach(message -> publish(channel, message));
+    }
+
+    public void sendPacketsAsync(String channel, List<MessagingPacket> messages) {
+        scheduler.execute(() -> sendPackets(channel, messages));
+    }
+
+    public @Nullable ChannelListener<?> getChannelByName(String name) {
+        return channelsByName.get(name);
+    }
+
+    private void publish(String channel, @NotNull MessagingPacket message) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.publish(channel, gson.toJson(message));
+        }
     }
 }

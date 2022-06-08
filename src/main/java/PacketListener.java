@@ -1,9 +1,9 @@
 import ezredislib.channel.ChannelListener;
 import ezredislib.channel.DefaultChannels;
 
-public class PacketListener implements ChannelListener<QualcosaPacket> {
+public class PacketListener implements ChannelListener<PacketIndex> {
     @Override
-    public void read(QualcosaPacket message) {
+    public void read(PacketIndex message) {
         System.out.println("Packet timestamp: "+ message.getTimestamp());
     }
 
