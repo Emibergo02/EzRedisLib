@@ -1,4 +1,4 @@
-import messaging.packet.MessagingPacket;
+import ezredislib.packet.MessagingPacket;
 import org.jetbrains.annotations.Nullable;
 
 public class QualcosaPacket implements MessagingPacket {

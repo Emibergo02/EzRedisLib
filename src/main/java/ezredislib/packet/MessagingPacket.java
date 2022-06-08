@@ -18,31 +18,7 @@
  *  Contact e-mail: emibergo@gmail.com
  */
 
-package messaging;
+package ezredislib.packet;
 
-/**
- * A list of default channel IDs.
- */
-public enum DefaultChannels {
-    CHANNEL_A("ezlib-a"),
-    CHANNEL_B("ezlib-b"),
-    CHANNEL_C("ezlib-c"),
-    CHANNEL_D("ezlib-d"),
-    ;
-
-    private final String name;
-
-    // remember. char limit is 8.
-    DefaultChannels(String name) {
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String toString() {
-        return this.name;
-    }
+public interface MessagingPacket {
 }

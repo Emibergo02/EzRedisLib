@@ -1,5 +1,5 @@
-import messaging.ChannelListener;
-import messaging.DefaultChannels;
+import ezredislib.channel.ChannelListener;
+import ezredislib.channel.DefaultChannels;
 
 public class PacketListener implements ChannelListener<QualcosaPacket> {
     @Override

@@ -18,10 +18,11 @@
  *  Contact e-mail: emibergo@gmail.com
  */
 
-package messaging;
+package ezredislib;
 
 import com.google.gson.Gson;
-import messaging.packet.MessagingPacket;
+import ezredislib.channel.ChannelListener;
+import ezredislib.packet.MessagingPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.Jedis;
@@ -35,7 +36,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 
 public class RedisMessagingHandler {

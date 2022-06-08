@@ -1,5 +1,5 @@
-import messaging.DefaultChannels;
-import messaging.RedisMessagingHandler;
+import ezredislib.channel.DefaultChannels;
+import ezredislib.RedisMessagingHandler;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

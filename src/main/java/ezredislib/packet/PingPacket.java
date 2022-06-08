@@ -1,4 +1,4 @@
-package messaging.packet;
+package ezredislib.packet;
 
 import org.jetbrains.annotations.Nullable;
 

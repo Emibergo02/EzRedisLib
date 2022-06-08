@@ -18,7 +18,7 @@
  *  Contact e-mail: emibergo@gmail.com
  */
 
-package messaging.packet;
+package ezredislib.packet;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
