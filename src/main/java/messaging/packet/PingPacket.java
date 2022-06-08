@@ -2,8 +2,6 @@ package messaging.packet;
 
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Type;
-
 public class PingPacket implements MessagingPacket,TargetedPacket {
 
     private final long timestamp;

@@ -20,7 +20,5 @@
 
 package messaging.packet;
 
-import java.lang.reflect.Type;
-
 public interface MessagingPacket {
 }

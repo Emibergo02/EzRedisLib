@@ -1,6 +1,5 @@
 import messaging.ChannelListener;
 import messaging.DefaultChannels;
-import org.jetbrains.annotations.NotNull;
 
 public class PacketListener implements ChannelListener<QualcosaPacket> {
     @Override
