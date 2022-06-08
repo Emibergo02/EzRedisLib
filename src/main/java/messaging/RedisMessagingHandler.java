@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 
 public class RedisMessagingHandler {
 
@@ -54,7 +55,7 @@ public class RedisMessagingHandler {
      * @throws InstantiationException If the connection to the redis server fails.
      */
     public RedisMessagingHandler(@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
-        scheduler = Executors.newFixedThreadPool(4);
+        scheduler = new ForkJoinPool();
         pool = new JedisPool(buildPoolConfig(), host, port, user, pass);
 
         if(!testConnection()){
@@ -71,7 +72,7 @@ public class RedisMessagingHandler {
      * @throws InstantiationException If the connection to the redis server fails.
      */
     public RedisMessagingHandler(@NotNull JedisPoolConfig poolConfig,@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
-        scheduler = Executors.newFixedThreadPool(4);
+        scheduler = new ForkJoinPool();
         pool = new JedisPool(poolConfig, host, port, user, pass);
 
         if(!testConnection()){
@@ -105,7 +106,6 @@ public class RedisMessagingHandler {
 
         //Extracts packet type from generic parameter of the channel listener
         Type packetType = ((ParameterizedType) messagingChannel.getClass().getGenericInterfaces()[0]).getActualTypeArguments()[0];
-
 
         scheduler.execute(() ->{
             try (Jedis jedis = pool.getResource()) {
