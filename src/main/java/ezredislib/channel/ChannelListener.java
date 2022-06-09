@@ -21,11 +21,13 @@
 package ezredislib.channel;
 
 
+
 import org.jetbrains.annotations.NotNull;
 
 /**
  * A channel is used to handle reading and actions related to a channel.
  */
+@Deprecated
 public interface ChannelListener<T> {
 
     /**

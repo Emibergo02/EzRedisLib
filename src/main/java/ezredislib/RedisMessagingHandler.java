@@ -21,26 +21,22 @@
 package ezredislib;
 
 import com.google.gson.Gson;
-import ezredislib.channel.ChannelListener;
+import ezredislib.channel.PubSubListener;
 import ezredislib.packet.MessagingPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.JedisPubSub;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 
 public class RedisMessagingHandler {
 
-    private static final ConcurrentHashMap<String, ChannelListener<?>> channelsByName = new ConcurrentHashMap<>();
+    private static final List<PubSubListener<?>> channelListeners = Collections.synchronizedList(new ArrayList<>());
     private final JedisPool pool;
     private final Gson gson = new Gson();
     private final ExecutorService scheduler;
@@ -92,41 +88,61 @@ public class RedisMessagingHandler {
             return false;
         }
     }
-
     /**
      * Registers incoming channel packets
-     * @param messagingChannel The channel to register.
+     * @param pubSubListener The channel to register.
      * @return true if the channel is registered successfully.
      */
-    public boolean registerChannelListener(@NotNull ChannelListener<?> messagingChannel) {
-        if (messagingChannel.getChannelName().trim().length() > 8) {
+    public boolean registerChannelListener(@NotNull PubSubListener<?> pubSubListener) {
+        if (pubSubListener.getChannelName().trim().length() > 8) {
             return false;
         }
-        channelsByName.put(messagingChannel.getChannelName(), messagingChannel);
-
-        //Extracts packet type from generic parameter of the channel listener
-        Type packetType = ((ParameterizedType) messagingChannel.getClass().getGenericInterfaces()[0]).getActualTypeArguments()[0];
-
+        channelListeners.add(pubSubListener);
         scheduler.execute(() ->{
             try (Jedis jedis = pool.getResource()) {
-                jedis.subscribe(new JedisPubSub() {
-                    @Override
-                    public void onMessage(String channel, String message) {
-                        messagingChannel.read(gson.fromJson(message, packetType));
-                    }
-                }, messagingChannel.getChannelName());
+                jedis.subscribe(pubSubListener, pubSubListener.getChannelName());
             }
         });
         return true;
     }
-
     /**
-     * Check if channel is registered.
-     * @param channel channel to check.
-     * @return true if already registered.
+     * Unsubscribe listeners listening to a channel
+     * @param channelName The channel to unregister.
+     * @return true if the channel is unregistered successfully.
      */
-    public boolean isChannelRegistered(String channel) {
-        return channelsByName.containsKey(channel);
+    public boolean unregisterFromChannel(String channelName) {
+        if (channelName.trim().length() > 8) {
+            return false;
+        }
+        Iterator<PubSubListener<?>> listenerIterator=channelListeners.iterator();
+        while(listenerIterator.hasNext()){
+            PubSubListener<?> listener=listenerIterator.next();
+            if(listener.getChannelName().equals(channelName)){
+                listener.unsubscribe();
+                listenerIterator.remove();
+            }
+        }
+
+        return true;
+    }
+
+    public List<PubSubListener<?>> getChannelListeners(String channelName){
+        List<PubSubListener<?>> listeners=new ArrayList<>();
+        for(PubSubListener<?> listener:channelListeners){
+            if(listener.getChannelName().equals(channelName)){
+                listeners.add(listener);
+            }
+        }
+        return listeners;
+    }
+
+    public boolean isChannelRegistered(String channelName){
+        for(PubSubListener<?> listener:channelListeners){
+            if(listener.getChannelName().equals(channelName)){
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -148,10 +164,6 @@ public class RedisMessagingHandler {
     public void sendPacketsAsync(String channel, List<MessagingPacket> messages) {
             scheduler.execute(() -> sendPackets(channel, messages));
 
-    }
-
-    public @Nullable ChannelListener<?> getChannelByName(String name) {
-        return channelsByName.get(name);
     }
 
     private void publish(String channel, @NotNull MessagingPacket message) {

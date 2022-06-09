@@ -9,10 +9,15 @@ public class Main {
     public static void main(String[] args) throws InstantiationException {
 
         RedisMessagingHandler handler = new RedisMessagingHandler("localhost", 6379, null, null);
-        handler.registerChannelListener(new PacketListener());
+        handler.registerChannelListener(new MioListener());
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-        QualcosaPacket packet = new QualcosaPacket("client1", "client2");
-        scheduler.scheduleAtFixedRate(() -> handler.sendPacketAsync(DefaultChannels.CHANNEL_A.getName(), packet), 2, 2, TimeUnit.SECONDS);
+
+        scheduler.scheduleAtFixedRate(() -> {
+            QualcosaPacket packet = new QualcosaPacket("client1", "client2");
+            handler.sendPacketAsync(DefaultChannels.CHANNEL_A.getName(), packet);
+        }
+        , 0, 100, TimeUnit.MILLISECONDS);
+
 
     }
 }
