@@ -1,5 +1,7 @@
-import ezredislib.channel.PubSubListener;
+package examples;
+
 import ezredislib.channel.DefaultChannels;
+import ezredislib.channel.PubSubListener;
 
 public class MioListener extends PubSubListener<QualcosaPacket> {
 

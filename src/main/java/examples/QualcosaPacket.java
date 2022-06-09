@@ -1,3 +1,5 @@
+package examples;
+
 import ezredislib.packet.MessagingPacket;
 import org.jetbrains.annotations.Nullable;
 

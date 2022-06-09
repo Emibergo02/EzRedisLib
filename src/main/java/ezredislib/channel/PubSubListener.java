@@ -1,8 +1,6 @@
 package ezredislib.channel;
 
 import com.google.gson.Gson;
-import ezredislib.channel.ChannelListener;
-import ezredislib.packet.MessagingPacket;
 import org.jetbrains.annotations.NotNull;
 import redis.clients.jedis.JedisPubSub;
 
