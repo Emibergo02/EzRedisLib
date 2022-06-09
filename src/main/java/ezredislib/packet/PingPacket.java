@@ -1,5 +1,6 @@
 package ezredislib.packet;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class PingPacket implements MessagingPacket,TargetedPacket {
@@ -20,7 +21,7 @@ public class PingPacket implements MessagingPacket,TargetedPacket {
     }
 
     @Override
-    public String getSender() {
+    public @NotNull String getSender() {
         return this.from;
     }
 
