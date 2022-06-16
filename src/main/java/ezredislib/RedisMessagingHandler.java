@@ -29,10 +29,11 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
+
+import ezredislib.RedisUtils;
 
 public class RedisMessagingHandler {
 
@@ -52,7 +53,7 @@ public class RedisMessagingHandler {
      */
     public RedisMessagingHandler(@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
         scheduler = new ForkJoinPool();
-        pool = new JedisPool(buildPoolConfig(), host, port, user, pass);
+        pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, user, pass);
 
         if(!testConnection()){
             throw new InstantiationException("Could not connect to redis server (down or inaccessible)");
@@ -149,9 +150,10 @@ public class RedisMessagingHandler {
      * Publish packet to channel
      * @param channel channel to publish to.
      * @param message message to publish.
+     * @return how many clients received the message.
      */
-    public void sendPacket(String channel, MessagingPacket message) {
-            publish(channel, message);
+    public long sendPacket(String channel, MessagingPacket message) {
+            return publish(channel, message);
 
     }
     public void sendPacketAsync(String channel, MessagingPacket message) {
@@ -166,38 +168,14 @@ public class RedisMessagingHandler {
 
     }
 
-    private void publish(String channel, @NotNull MessagingPacket message) {
+    private long publish(String channel, @NotNull MessagingPacket message) {
         try (Jedis jedis = pool.getResource()) {
-            jedis.publish(channel, gson.toJson(message));
+            return jedis.publish(channel, gson.toJson(message));
+        }catch (Exception exception){
+            exception.printStackTrace();
+            return 0;
         }
     }
 
-    public static @NotNull JedisPoolConfig buildPoolConfig() {
-        final JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxTotal(128);
-        poolConfig.setMaxIdle(128);
-        poolConfig.setMinIdle(16);
-        poolConfig.setTestOnBorrow(true);
-        poolConfig.setTestOnReturn(true);
-        poolConfig.setTestWhileIdle(true);
-        poolConfig.setMinEvictableIdleTime(Duration.ofSeconds(60));
-        poolConfig.setTimeBetweenEvictionRuns(Duration.ofSeconds(30));
-        poolConfig.setNumTestsPerEvictionRun(3);
-        poolConfig.setBlockWhenExhausted(true);
-        return poolConfig;
-    }
-    public static @NotNull JedisPoolConfig buildPoolConfig(int totalPoolConnections,int maxIdleConnections,int minIdleConnections) {
-        final JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxTotal(totalPoolConnections);
-        poolConfig.setMaxIdle(maxIdleConnections);
-        poolConfig.setMinIdle(minIdleConnections);
-        poolConfig.setTestOnBorrow(true);
-        poolConfig.setTestOnReturn(true);
-        poolConfig.setTestWhileIdle(true);
-        poolConfig.setMinEvictableIdleTime(Duration.ofSeconds(60));
-        poolConfig.setTimeBetweenEvictionRuns(Duration.ofSeconds(30));
-        poolConfig.setNumTestsPerEvictionRun(3);
-        poolConfig.setBlockWhenExhausted(true);
-        return poolConfig;
-    }
+
 }
