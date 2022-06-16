@@ -23,6 +23,9 @@ public class EzRedisLibPlugin extends JavaPlugin {
         });
         if(reload())getLogger().info("Connection established");
 
+        //bStats
+        new Metrics(this, 15499);
+
     }
 
     private boolean reload() {
