@@ -1,4 +1,4 @@
-package ezredislib.channel;
+package dev.unnm3d.ezredislib.channel;
 
 import com.google.gson.Gson;
 import org.jetbrains.annotations.NotNull;

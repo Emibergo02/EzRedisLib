@@ -18,7 +18,33 @@
  *  Contact e-mail: emibergo@gmail.com
  */
 
-package ezredislib.packet;
+package dev.unnm3d.ezredislib.channel;
 
-public interface MessagingPacket {
+/**
+ * A list of default channel IDs.
+ */
+public enum DefaultChannels {
+    CHANNEL_A("ezlib-a"),
+    CHANNEL_B("ezlib-b"),
+    CHANNEL_C("ezlib-c"),
+    CHANNEL_D("ezlib-d"),
+    ;
+
+    private final String name;
+
+    DefaultChannels(String name) {
+        if(name.length() > 8) {
+            throw new IllegalArgumentException("Channel name cannot be longer than 8 characters.");
+        }
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String toString() {
+        return this.name;
+    }
 }

@@ -18,33 +18,22 @@
  *  Contact e-mail: emibergo@gmail.com
  */
 
-package ezredislib.channel;
+package dev.unnm3d.ezredislib.packet;
 
-/**
- * A list of default channel IDs.
- */
-public enum DefaultChannels {
-    CHANNEL_A("ezlib-a"),
-    CHANNEL_B("ezlib-b"),
-    CHANNEL_C("ezlib-c"),
-    CHANNEL_D("ezlib-d"),
-    ;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-    private final String name;
+public interface TargetedPacket {
 
-    DefaultChannels(String name) {
-        if(name.length() > 8) {
-            throw new IllegalArgumentException("Channel name cannot be longer than 8 characters.");
-        }
-        this.name = name;
-    }
+    /**
+     * When null it usually means it is targeted to all listeners.
+     */
+    @Nullable
+    String getTarget();
 
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String toString() {
-        return this.name;
-    }
+    /**
+     * Eventually who wants the response.
+     */
+    @NotNull
+    String getSender();
 }

@@ -1,4 +1,4 @@
-package ezredislib.packet;
+package dev.unnm3d.ezredislib.packet;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -1,4 +1,4 @@
-package ezredislib;
+package dev.unnm3d.ezredislib;
 
 import org.jetbrains.annotations.NotNull;
 import redis.clients.jedis.JedisPoolConfig;

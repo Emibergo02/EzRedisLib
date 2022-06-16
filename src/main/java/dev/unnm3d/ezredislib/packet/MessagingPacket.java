@@ -18,22 +18,7 @@
  *  Contact e-mail: emibergo@gmail.com
  */
 
-package ezredislib.packet;
+package dev.unnm3d.ezredislib.packet;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-public interface TargetedPacket {
-
-    /**
-     * When null it usually means it is targeted to all listeners.
-     */
-    @Nullable
-    String getTarget();
-
-    /**
-     * Eventually who wants the response.
-     */
-    @NotNull
-    String getSender();
+public interface MessagingPacket {
 }
