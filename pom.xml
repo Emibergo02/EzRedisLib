@@ -9,7 +9,13 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <url>https://jitpack.io/#jitpack/EzRedisLib/1.0-SNAPSHOT</url>
-
+    <repositories>
+        <!-- This adds the Spigot Maven repository to the build -->
+        <repository>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
     <build>
         <plugins>
 
@@ -48,6 +54,12 @@
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
             <version>4.2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.19-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
