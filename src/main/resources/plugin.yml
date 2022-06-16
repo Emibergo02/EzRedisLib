@@ -1,5 +1,5 @@
 name: EzRedisLib
-main: dev.unnm3d.ezredislib.bukkit.BukkitPlugin
+main: dev.unnm3d.ezredislib.bukkit.EzRedisLibPlugin
 author: Unnm3d
 description: 'Bukkit implementation of EzRedisLib'
 version: 1.0-Bukkit
@@ -8,4 +8,6 @@ commands:
   ezredislibreload:
     description: 'reloads redis connection'
 permissions:
-    ezredislibreload: 'ezredislib.reload'
+  ezredislibreload:
+    description: Allows you to reload the plugin
+    default: op

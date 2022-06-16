@@ -7,6 +7,10 @@ import java.time.Duration;
 
 public class RedisUtils {
 
+    /**
+     * Creates a new JedisPoolConfig with default parameters.
+     * @return the generated config
+     */
     public static @NotNull JedisPoolConfig buildPoolConfig() {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(128);
@@ -21,6 +25,14 @@ public class RedisUtils {
         poolConfig.setBlockWhenExhausted(true);
         return poolConfig;
     }
+
+    /**
+     * Creates a new JedisPoolConfig custom parameters
+     * @param totalPoolConnections The maximum number of connections in the pool.
+     * @param maxIdleConnections The maximum number of idle connections in the pool.
+     * @param minIdleConnections The minimum number of idle connections in the pool.
+     * @return the generated config
+     */
     public static @NotNull JedisPoolConfig buildPoolConfig(int totalPoolConnections,int maxIdleConnections,int minIdleConnections) {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(totalPoolConnections);

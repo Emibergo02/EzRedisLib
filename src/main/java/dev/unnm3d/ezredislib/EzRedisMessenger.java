@@ -33,7 +33,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 
-public class RedisMessagingHandler {
+public class EzRedisMessenger {
 
     private static final List<PubSubListener<?>> channelListeners = Collections.synchronizedList(new ArrayList<>());
     private final JedisPool pool;
@@ -42,14 +42,14 @@ public class RedisMessagingHandler {
 
 
     /**
-     * Creates a new RedisMessagingHandler.
+     * Creates a new EzRedisMessenger.
      * @param host The host of the redis server.
      * @param port The port of the redis server.
      * @param user The user of the redis server (null for none).
      * @param pass The password of the redis server (null for none).
      * @throws InstantiationException If the connection to the redis server fails.
      */
-    public RedisMessagingHandler(@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
+    public EzRedisMessenger(@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
         scheduler = new ForkJoinPool();
         pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, user, pass);
 
@@ -58,7 +58,21 @@ public class RedisMessagingHandler {
         }
     }
     /**
-     * Creates a new RedisMessagingHandler.
+     * Creates a new EzRedisMessenger.
+     * @param host The host of the redis server.
+     * @param port The port of the redis server.
+     * @throws InstantiationException If the connection to the redis server fails.
+     */
+    public EzRedisMessenger(@NotNull String host, int port) throws InstantiationException {
+        scheduler = new ForkJoinPool();
+        pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, null, null);
+
+        if(!testConnection()){
+            throw new InstantiationException("Could not connect to redis server (down or inaccessible)");
+        }
+    }
+    /**
+     * Creates a new EzRedisMessenger.
      * @param poolConfig The pool config of the redis client.
      * @param host The host of the redis server.
      * @param port The port of the redis server.
@@ -66,7 +80,7 @@ public class RedisMessagingHandler {
      * @param pass The password of the redis server (null for none).
      * @throws InstantiationException If the connection to the redis server fails.
      */
-    public RedisMessagingHandler(@NotNull JedisPoolConfig poolConfig,@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
+    public EzRedisMessenger(@NotNull JedisPoolConfig poolConfig, @NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
         scheduler = new ForkJoinPool();
         pool = new JedisPool(poolConfig, host, port, user, pass);
 
@@ -125,6 +139,10 @@ public class RedisMessagingHandler {
         return true;
     }
 
+    /**
+     * Get all listeners listening on a channel
+     * @param channelName The channel to get listeners.
+     */
     public List<PubSubListener<?>> getChannelListeners(String channelName){
         List<PubSubListener<?>> listeners=new ArrayList<>();
         for(PubSubListener<?> listener:channelListeners){
@@ -135,6 +153,11 @@ public class RedisMessagingHandler {
         return listeners;
     }
 
+    /**
+     * Checks if a channel is registered.
+     * @param channelName The channel to check.
+     * @return true if the channel is already registered.
+     */
     public boolean isChannelRegistered(String channelName){
         for(PubSubListener<?> listener:channelListeners){
             if(listener.getChannelName().equals(channelName)){
@@ -142,6 +165,15 @@ public class RedisMessagingHandler {
             }
         }
         return false;
+    }
+
+    /**
+     * Gets a redis connection from the pool.
+     * This is for who wants to use the redis client for storage.
+     * @return The redis connection.
+     */
+    public Jedis getJedisCache() {
+        return pool.getResource();
     }
 
     /**
@@ -154,13 +186,29 @@ public class RedisMessagingHandler {
             return publish(channel, message);
 
     }
+
+    /**
+     * Publish packet to channel asynchronously
+     * @param channel channel to publish to.
+     * @param message message to publish.
+     */
     public void sendPacketAsync(String channel, MessagingPacket message) {
             scheduler.execute(() -> sendPacket(channel, message));
     }
 
+    /**
+     * Publish multiple packets to channel
+     * @param channel channel to publish to.
+     * @param messages messages to publish.
+     */
     public void sendPackets(String channel, List<MessagingPacket> messages) {
             messages.forEach(message -> publish(channel, message));
     }
+    /**
+     * Publish multiple packets to channel asynchronously
+     * @param channel channel to publish to.
+     * @param messages messages to publish.
+     */
     public void sendPacketsAsync(String channel, List<MessagingPacket> messages) {
             scheduler.execute(() -> sendPackets(channel, messages));
 
