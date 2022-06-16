@@ -1,9 +1,9 @@
-package dev.unnm3d.ezredislib.bukkit;
+package dev.unnm3d.ezredislib.platforms;
 
 import dev.unnm3d.ezredislib.EzRedisMessenger;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class EzRedisLibPlugin extends JavaPlugin {
+public class EzRedisLibBukkit extends JavaPlugin {
 
     private static EzRedisMessenger redisMessagingHandler;
 
@@ -24,7 +24,7 @@ public class EzRedisLibPlugin extends JavaPlugin {
         if(reload())getLogger().info("Connection established");
 
         //bStats
-        new Metrics(this, 15499);
+        new MetricsBukkit(this, 15499);
 
     }
 

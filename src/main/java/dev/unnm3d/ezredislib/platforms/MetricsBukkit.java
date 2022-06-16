@@ -1,4 +1,4 @@
-package dev.unnm3d.ezredislib.bukkit;
+package dev.unnm3d.ezredislib.platforms;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -32,7 +32,7 @@ import java.util.zip.GZIPOutputStream;
  * Check out https://bStats.org/ to learn more about bStats!
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
-public class Metrics {
+public class MetricsBukkit {
 
     static {
         // You can use the property to disable the check in your test environment
@@ -42,7 +42,7 @@ public class Metrics {
                     new byte[]{'o', 'r', 'g', '.', 'b', 's', 't', 'a', 't', 's', '.', 'b', 'u', 'k', 'k', 'i', 't'});
             final String examplePackage = new String(new byte[]{'y', 'o', 'u', 'r', '.', 'p', 'a', 'c', 'k', 'a', 'g', 'e'});
             // We want to make sure nobody just copy & pastes the example and use the wrong package names
-            if (Metrics.class.getPackage().getName().equals(defaultPackage) || Metrics.class.getPackage().getName().equals(examplePackage)) {
+            if (MetricsBukkit.class.getPackage().getName().equals(defaultPackage) || MetricsBukkit.class.getPackage().getName().equals(examplePackage)) {
                 throw new IllegalStateException("bStats Metrics class has not been relocated correctly!");
             }
         }
@@ -92,7 +92,7 @@ public class Metrics {
      * @param pluginId The id of the plugin.
      *                 It can be found at <a href="https://bstats.org/what-is-my-plugin-id">What is my plugin id?</a>
      */
-    public Metrics(Plugin plugin, int pluginId) {
+    public MetricsBukkit(Plugin plugin, int pluginId) {
         if (plugin == null) {
             throw new IllegalArgumentException("Plugin cannot be null!");
         }
@@ -148,7 +148,7 @@ public class Metrics {
                 } catch (NoSuchFieldException ignored) { }
             }
             // Register our service
-            Bukkit.getServicesManager().register(Metrics.class, this, plugin, ServicePriority.Normal);
+            Bukkit.getServicesManager().register(MetricsBukkit.class, this, plugin, ServicePriority.Normal);
             if (!found) {
                 // We are the first!
                 startSubmitting();
