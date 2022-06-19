@@ -176,6 +176,12 @@ public class EzRedisMessenger {
         return pool.getResource();
     }
 
+    public void destroy() {
+        channelListeners.forEach(PubSubListener::unsubscribe);
+        pool.close();
+        scheduler.shutdown();
+    }
+
     /**
      * Publish packet to channel
      * @param channel channel to publish to.

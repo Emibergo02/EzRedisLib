@@ -1,14 +1,15 @@
 package dev.unnm3d.ezredislib.platforms;
 
 import dev.unnm3d.ezredislib.EzRedisMessenger;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class EzRedisLibBukkit extends JavaPlugin {
 
-    private static EzRedisMessenger redisMessagingHandler;
+    private static EzRedisMessenger redisMessenger;
 
     public static EzRedisMessenger getRedisMessenger() {
-        return redisMessagingHandler;
+        return redisMessenger;
     }
 
     @Override
@@ -24,18 +25,20 @@ public class EzRedisLibBukkit extends JavaPlugin {
         if(reload())getLogger().info("Connection established");
 
         //bStats
-        new MetricsBukkit(this, 15499);
+        new Metrics(this, 15499);
 
     }
 
     private boolean reload() {
         this.saveDefaultConfig();
+        //remove old handler
+        redisMessenger.destroy();
         try {
             String user= this.getConfig().getString("redis.user", "");
             String pass= this.getConfig().getString("redis.password", "");
             user= user.isBlank() ? null : user;
             pass= pass.isBlank() ? null : pass;
-            redisMessagingHandler = new EzRedisMessenger(getConfig().getString("redis.host", "127.0.0.1"), getConfig().getInt("redis.port", 6379), user, pass);
+            redisMessenger = new EzRedisMessenger(getConfig().getString("redis.host", "127.0.0.1"), getConfig().getInt("redis.port", 6379), user, pass);
             return true;
         } catch (InstantiationException e) {
             getLogger().severe("Error while reloading plugin: cannot create Connection with Redis");
