@@ -172,7 +172,7 @@ public class EzRedisMessenger {
      * This is for who wants to use the redis client for storage.
      * @return The redis connection.
      */
-    public Jedis getJedisCache() {
+    public Jedis getJedis() {
         return pool.getResource();
     }
 
