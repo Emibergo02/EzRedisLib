@@ -1,4 +1,4 @@
-# SockExchangeVelocity
+# EzRedisLib
 Simple Redis pubsub library for Proxy and Spigot servers
 
 ## Installation
