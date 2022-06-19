@@ -43,7 +43,7 @@ allprojects {
 }
 ```
 
-Add the dependency and replace `v1.0.0` with the latest release version:
+Add the dependency and replace `1.1-SNAPSHOT` with the latest release version:
 ```gradle
 dependencies {
         implementation 'com.github.Emibergo02:EzRedisLib:1.1-SNAPSHOT'
