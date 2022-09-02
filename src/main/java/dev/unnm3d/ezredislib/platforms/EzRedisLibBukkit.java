@@ -6,14 +6,16 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class EzRedisLibBukkit extends JavaPlugin {
 
-    private static EzRedisMessenger redisMessenger;
+    private EzRedisMessenger redisMessenger;
+    private static EzRedisLibBukkit instance;
 
-    public static EzRedisMessenger getRedisMessenger() {
+    public EzRedisMessenger getRedisMessenger() {
         return redisMessenger;
     }
 
     @Override
     public void onEnable() {
+        this.instance=this;
         this.getCommand("ezredislibreload").setExecutor((commandSender, command, s, strings) -> {
             if(reload()) {
                 commandSender.sendMessage("§bEzRedisLib reloaded. Connection to redis established.");
@@ -32,7 +34,8 @@ public class EzRedisLibBukkit extends JavaPlugin {
     private boolean reload() {
         this.saveDefaultConfig();
         //remove old handler
-        redisMessenger.destroy();
+        if(redisMessenger!=null)
+            redisMessenger.destroy();
         try {
             String user= this.getConfig().getString("redis.user", "");
             String pass= this.getConfig().getString("redis.password", "");
@@ -44,5 +47,8 @@ public class EzRedisLibBukkit extends JavaPlugin {
             getLogger().severe("Error while reloading plugin: cannot create Connection with Redis");
             return false;
         }
+    }
+    public static EzRedisLibBukkit getInstance(){
+        return instance;
     }
 }
