@@ -21,6 +21,7 @@
 package dev.unnm3d.ezredislib;
 
 import com.google.gson.Gson;
+import dev.unnm3d.ezredislib.channel.PubSubByteListener;
 import dev.unnm3d.ezredislib.channel.PubSubListener;
 import dev.unnm3d.ezredislib.packet.MessagingPacket;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +30,9 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
@@ -36,6 +40,7 @@ import java.util.concurrent.ForkJoinPool;
 public class EzRedisMessenger {
 
     private static final List<PubSubListener<?>> channelListeners = Collections.synchronizedList(new ArrayList<>());
+    private static final List<PubSubByteListener<?>> channelByteListeners = Collections.synchronizedList(new ArrayList<>());
     private final JedisPool pool;
     private final Gson gson = new Gson();
     private final ExecutorService scheduler;
@@ -119,6 +124,23 @@ public class EzRedisMessenger {
         return true;
     }
     /**
+     * Registers incoming channel packets
+     * @param pubSubListener The channel to register.
+     * @return true if the channel is registered successfully.
+     */
+    public boolean registerChannelByteListener(@NotNull PubSubByteListener<?> pubSubListener) {
+        if (pubSubListener.getChannelName().trim().length() > 8) {
+            return false;
+        }
+        channelByteListeners.add(pubSubListener);
+        scheduler.execute(() ->{
+            try (Jedis jedis = pool.getResource()) {
+                jedis.subscribe(pubSubListener, pubSubListener.getChannelNameRaw());
+            }
+        });
+        return true;
+    }
+    /**
      * Unsubscribe listeners listening to a channel
      * @param channelName The channel to unregister.
      * @return true if the channel is unregistered successfully.
@@ -194,6 +216,17 @@ public class EzRedisMessenger {
     }
 
     /**
+     * Publish packet to channel
+     * @param channel channel to publish to.
+     * @param objMessage message to publish.
+     * @return how many clients received the message.
+     */
+    public long sendBytePacket(String channel, Object objMessage) {
+        return publishBytes(channel, objMessage);
+
+    }
+
+    /**
      * Publish packet to channel asynchronously
      * @param channel channel to publish to.
      * @param message message to publish.
@@ -223,6 +256,18 @@ public class EzRedisMessenger {
     private long publish(String channel, @NotNull MessagingPacket message) {
         try (Jedis jedis = pool.getResource()) {
             return jedis.publish(channel, gson.toJson(message));
+        }catch (Exception exception){
+            exception.printStackTrace();
+            return 0;
+        }
+    }
+    private long publishBytes(String channel, @NotNull Object objMessage) {
+        try (Jedis jedis = pool.getResource()) {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(objMessage);
+            oos.flush();
+            return jedis.publish(channel.getBytes(StandardCharsets.US_ASCII), bos.toByteArray());
         }catch (Exception exception){
             exception.printStackTrace();
             return 0;

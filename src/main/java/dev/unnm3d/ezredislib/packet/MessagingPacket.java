@@ -20,5 +20,7 @@
 
 package dev.unnm3d.ezredislib.packet;
 
-public interface MessagingPacket {
+import java.io.Serializable;
+
+public interface MessagingPacket extends Serializable {
 }

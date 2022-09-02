@@ -3,24 +3,45 @@ package dev.unnm3d.ezredislib.packet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class PingPacket implements MessagingPacket,TargetedPacket {
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.HashMap;
 
+public class PingPacket<T,K> implements MessagingPacket{
+
+    @Serial
+    private static final long serialVersionUID = -6503226760990705061L;
     private final long timestamp;
     private final String from;
     private final String to;
+    private HashMap<T,K> antonio;
+
+    public PingPacket() {
+        this.from= "a";
+        this.to= "b";
+        this.timestamp = System.currentTimeMillis();
+        antonio=new HashMap<>();
+    }
 
     public PingPacket(String from,String to) {
         this.from= from;
         this.to= to;
         this.timestamp = System.currentTimeMillis();
+        antonio= new HashMap<>();
+    }
+    public void setRoba(T a,K b){
+        antonio.put(a,b);
     }
 
-    @Override
+
     public @Nullable String getTarget() {
         return this.to;
     }
 
-    @Override
+    public @Nullable HashMap<T,K> getMapo() {
+        return antonio;
+    }
+
     public @NotNull String getSender() {
         return this.from;
     }
