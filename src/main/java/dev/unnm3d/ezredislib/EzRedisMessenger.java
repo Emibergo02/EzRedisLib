@@ -21,9 +21,11 @@
 package dev.unnm3d.ezredislib;
 
 import com.google.gson.Gson;
-import dev.unnm3d.ezredislib.channel.PubSubByteListener;
+import dev.unnm3d.ezredislib.channel.PubSubObjectListener;
 import dev.unnm3d.ezredislib.channel.PubSubListener;
+import dev.unnm3d.ezredislib.packet.ABCPacket;
 import dev.unnm3d.ezredislib.packet.MessagingPacket;
+import dev.unnm3d.ezredislib.packet.PingPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.Jedis;
@@ -32,6 +34,7 @@ import redis.clients.jedis.JedisPoolConfig;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -40,7 +43,7 @@ import java.util.concurrent.ForkJoinPool;
 public class EzRedisMessenger {
 
     private static final List<PubSubListener<?>> channelListeners = Collections.synchronizedList(new ArrayList<>());
-    private static final List<PubSubByteListener<?>> channelByteListeners = Collections.synchronizedList(new ArrayList<>());
+    private static final List<PubSubObjectListener> channelByteListeners = Collections.synchronizedList(new ArrayList<>());
     private final JedisPool pool;
     private final Gson gson = new Gson();
     private final ExecutorService scheduler;
@@ -125,21 +128,45 @@ public class EzRedisMessenger {
     }
     /**
      * Registers incoming channel packets
-     * @param pubSubListener The channel to register.
+     * @param channel the channel to listen
+     * @param rpf packet read function
      * @return true if the channel is registered successfully.
      */
-    public boolean registerChannelByteListener(@NotNull PubSubByteListener<?> pubSubListener) {
-        if (pubSubListener.getChannelName().trim().length() > 8) {
+    public boolean registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf) {
+        if (channel.trim().length() > 8) {
             return false;
         }
-        channelByteListeners.add(pubSubListener);
+        PubSubObjectListener pubSubObjectListener =new PubSubObjectListener(rpf);
+        channelByteListeners.add(pubSubObjectListener);
         scheduler.execute(() ->{
             try (Jedis jedis = pool.getResource()) {
-                jedis.subscribe(pubSubListener, pubSubListener.getChannelNameRaw());
+                jedis.subscribe(pubSubObjectListener, channel.getBytes(StandardCharsets.US_ASCII));
             }
         });
         return true;
     }
+
+    /**
+     * Registers incoming channel packets
+     * @param channel the channel to listen
+     * @param rpf packet read function
+     * @param classFilter filters incoming packets. they must be subclasses of this class
+     * @return true if the channel is registered successfully.
+     */
+    public boolean registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf, Type classFilter) {
+        if (channel.trim().length() > 8) {
+            return false;
+        }
+        PubSubObjectListener pubSubObjectListener =new PubSubObjectListener(rpf,classFilter);
+        channelByteListeners.add(pubSubObjectListener);
+        scheduler.execute(() ->{
+            try (Jedis jedis = pool.getResource()) {
+                jedis.subscribe(pubSubObjectListener, channel.getBytes(StandardCharsets.US_ASCII));
+            }
+        });
+        return true;
+    }
+
     /**
      * Unsubscribe listeners listening to a channel
      * @param channelName The channel to unregister.
@@ -221,9 +248,17 @@ public class EzRedisMessenger {
      * @param objMessage message to publish.
      * @return how many clients received the message.
      */
-    public long sendBytePacket(String channel, Object objMessage) {
+    public long sendObjectPacket(String channel, Object objMessage) {
         return publishBytes(channel, objMessage);
+    }
 
+    /**
+     * Publish packet to channel asynchronously
+     * @param channel channel to publish to.
+     * @param objMessage message to publish.
+     */
+    public void sendObjectPacketAsync(String channel, Object objMessage) {
+        scheduler.execute(() -> sendObjectPacket(channel, objMessage));
     }
 
     /**
@@ -243,6 +278,16 @@ public class EzRedisMessenger {
     public void sendPackets(String channel, List<MessagingPacket> messages) {
             messages.forEach(message -> publish(channel, message));
     }
+
+    /**
+     * Publish multiple packets to channel
+     * @param channel channel to publish to.
+     * @param objectList messages to publish.
+     */
+    public void sendObjectPackets(String channel, List<Object> objectList) {
+        objectList.forEach(message -> publishBytes(channel, message));
+    }
+
     /**
      * Publish multiple packets to channel asynchronously
      * @param channel channel to publish to.
@@ -250,6 +295,16 @@ public class EzRedisMessenger {
      */
     public void sendPacketsAsync(String channel, List<MessagingPacket> messages) {
             scheduler.execute(() -> sendPackets(channel, messages));
+
+    }
+
+    /**
+     * Publish multiple packets to channel asynchronously
+     * @param channel channel to publish to.
+     * @param objectList messages to publish.
+     */
+    public void sendObjectPacketsAsync(String channel, List<Object> objectList) {
+        scheduler.execute(() -> sendObjectPackets(channel, objectList));
 
     }
 
