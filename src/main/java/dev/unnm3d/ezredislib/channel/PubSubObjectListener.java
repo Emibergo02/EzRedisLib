@@ -11,13 +11,13 @@ public class PubSubObjectListener extends BinaryJedisPubSub {
 
 
     private final ReadPacketFunction rpf;
-    private final Type filterClass;
+    private final Class<?> filterClass;
 
     public PubSubObjectListener(ReadPacketFunction rpf) {
         this.rpf=rpf;
-        this.filterClass = Object.class;
+        this.filterClass = null;
     }
-    public PubSubObjectListener(ReadPacketFunction rpf, Type filterClass) {
+    public PubSubObjectListener(ReadPacketFunction rpf, Class<?> filterClass) {
         this.rpf=rpf;
         this.filterClass = filterClass;
     }
@@ -28,8 +28,10 @@ public class PubSubObjectListener extends BinaryJedisPubSub {
 
         try {
             Object obj=deserialize(message);
-            if(obj.getClass().equals(filterClass))
-                this.rpf.read(obj);
+            if(filterClass!=null){
+                if(!filterClass.isInstance(obj))return;
+            }
+            this.rpf.read(obj);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {

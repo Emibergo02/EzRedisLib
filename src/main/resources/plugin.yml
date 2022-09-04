@@ -2,7 +2,7 @@ name: EzRedisLib
 main: dev.unnm3d.ezredislib.platforms.EzRedisLibBukkit
 author: Unnm3d
 description: 'Bukkit implementation of EzRedisLib'
-version: 1.1-Bukkit
+version: 2.2-Bukkit
 
 commands:
   ezredislibreload:

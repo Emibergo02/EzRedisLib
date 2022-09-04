@@ -151,7 +151,7 @@ public class EzRedisMessenger {
      * @param classFilter filters incoming packets. they must be subclasses of this class
      * @return true if the channel is registered successfully.
      */
-    public boolean registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf, Type classFilter) {
+    public boolean registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf, Class<?> classFilter) {
         if (channel.trim().length() > 8) {
             return false;
         }

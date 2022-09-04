@@ -2,4 +2,4 @@ name: EzRedisLib
 main: dev.unnm3d.ezredislib.platforms.EzRedisLibBungee
 author: Unnm3d
 description: 'Bukkit implementation of EzRedisLib'
-version: 1.1-Bungee
+version: 2.2-Bungee
