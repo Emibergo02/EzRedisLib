@@ -7,30 +7,45 @@ import redis.clients.jedis.JedisPubSub;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-public abstract class PubSubListener<T> extends JedisPubSub {
+public class PubSubListener extends JedisPubSub {
 
     private final Gson gson = new Gson();
+    private final Class<?> filterClass;
+    private final ReadPacketFunction rpf;
     private final String channelName;
-    private final Type packetType;
 
-    public PubSubListener(String channelName) {
-        this.channelName=channelName;
-        this.packetType=((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
 
+    public PubSubListener(String channelName,ReadPacketFunction rpf) {
+        this.channelName = channelName;
+        this.rpf=rpf;
+        this.filterClass = null;
+    }
+    public PubSubListener(String channelName,ReadPacketFunction rpf,  Class<?> filterClass) {
+        this.channelName = channelName;
+        this.rpf=rpf;
+        this.filterClass = filterClass;
     }
 
     @Override
     public void onMessage(String channel, String message) {
-        this.read(gson.fromJson(message, this.packetType));
+        Object o=gson.fromJson(message, this.filterClass);
+        if(filterClass!=null){
+            if(!filterClass.isInstance(o))return;
+        }
+        rpf.read(o);
     }
 
-    abstract public void read(T message);
 
-    public Type getPacketType(){
-        return packetType;
+    public  Class<?> getPacketType(){
+        return filterClass;
     }
 
     public @NotNull String getChannelName(){
         return channelName;
+    }
+
+    @FunctionalInterface
+    public interface ReadPacketFunction {
+        void read(Object message);
     }
 }

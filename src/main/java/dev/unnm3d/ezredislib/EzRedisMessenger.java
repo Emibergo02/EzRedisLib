@@ -36,11 +36,12 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 
 public class EzRedisMessenger {
 
-    private static final List<PubSubListener<?>> channelListeners = Collections.synchronizedList(new ArrayList<>());
+    private static final List<PubSubListener> channelListeners = Collections.synchronizedList(new ArrayList<>());
     private static final List<PubSubObjectListener> channelByteListeners = Collections.synchronizedList(new ArrayList<>());
     private final JedisPool pool;
     private final Gson gson = new Gson();
@@ -56,7 +57,7 @@ public class EzRedisMessenger {
      * @throws InstantiationException If the connection to the redis server fails.
      */
     public EzRedisMessenger(@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
-        scheduler = new ForkJoinPool();
+        scheduler = Executors.newFixedThreadPool(4);
         pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, user, pass);
 
         if(!testConnection()){
@@ -87,7 +88,7 @@ public class EzRedisMessenger {
      * @throws InstantiationException If the connection to the redis server fails.
      */
     public EzRedisMessenger(@NotNull JedisPoolConfig poolConfig, @NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
-        scheduler = new ForkJoinPool();
+        scheduler = Executors.newCachedThreadPool();
         pool = new JedisPool(poolConfig, host, port, user, pass);
 
         if(!testConnection()){
@@ -109,17 +110,38 @@ public class EzRedisMessenger {
     }
     /**
      * Registers incoming channel packets
-     * @param pubSubListener The channel to register.
+     * @param rpf The packet listener.
+     * @param channel The channel to listen to.
      * @return true if the channel is registered successfully.
      */
-    public boolean registerChannelListener(@NotNull PubSubListener<?> pubSubListener) {
-        if (pubSubListener.getChannelName().trim().length() > 8) {
+    public boolean registerChannelListener(String channel, PubSubListener.ReadPacketFunction rpf) {
+        if (channel.trim().length() > 8) {
             return false;
         }
+        PubSubListener pubSubListener =new PubSubListener(channel,rpf);
         channelListeners.add(pubSubListener);
         scheduler.execute(() ->{
             try (Jedis jedis = pool.getResource()) {
-                jedis.subscribe(pubSubListener, pubSubListener.getChannelName());
+                jedis.subscribe(pubSubListener, channel);
+            }
+        });
+        return true;
+    }
+    /**
+     * Registers incoming channel packets
+     * @param rpf The packet listener.
+     * @param channel The channel to listen to.
+     * @return true if the channel is registered successfully.
+     */
+    public boolean registerChannelListener(String channel, PubSubListener.ReadPacketFunction rpf,Class<?> classFilter) {
+        if (channel.trim().length() > 8) {
+            return false;
+        }
+        PubSubListener pubSubListener =new PubSubListener(channel,rpf,classFilter);
+        channelListeners.add(pubSubListener);
+        scheduler.execute(() ->{
+            try (Jedis jedis = pool.getResource()) {
+                jedis.subscribe(pubSubListener, channel);
             }
         });
         return true;
@@ -174,9 +196,9 @@ public class EzRedisMessenger {
         if (channelName.trim().length() > 8) {
             return false;
         }
-        Iterator<PubSubListener<?>> listenerIterator=channelListeners.iterator();
+        Iterator<PubSubListener> listenerIterator=channelListeners.iterator();
         while(listenerIterator.hasNext()){
-            PubSubListener<?> listener=listenerIterator.next();
+            PubSubListener listener=listenerIterator.next();
             if(listener.getChannelName().equals(channelName)){
                 listener.unsubscribe();
                 listenerIterator.remove();
@@ -190,9 +212,9 @@ public class EzRedisMessenger {
      * Get all listeners listening on a channel
      * @param channelName The channel to get listeners.
      */
-    public List<PubSubListener<?>> getChannelListeners(String channelName){
-        List<PubSubListener<?>> listeners=new ArrayList<>();
-        for(PubSubListener<?> listener:channelListeners){
+    public List<PubSubListener> getChannelListeners(String channelName){
+        List<PubSubListener> listeners=new ArrayList<>();
+        for(PubSubListener listener:channelListeners){
             if(listener.getChannelName().equals(channelName)){
                 listeners.add(listener);
             }
@@ -206,7 +228,7 @@ public class EzRedisMessenger {
      * @return true if the channel is already registered.
      */
     public boolean isChannelRegistered(String channelName){
-        for(PubSubListener<?> listener:channelListeners){
+        for(PubSubListener listener:channelListeners){
             if(listener.getChannelName().equals(channelName)){
                 return true;
             }
