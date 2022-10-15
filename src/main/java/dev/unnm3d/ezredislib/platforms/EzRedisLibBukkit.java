@@ -15,7 +15,7 @@ public class EzRedisLibBukkit extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        this.instance=this;
+        instance=this;
         this.getCommand("ezredislibreload").setExecutor((commandSender, command, s, strings) -> {
             if(reload()) {
                 commandSender.sendMessage("§bEzRedisLib reloaded. Connection to redis established.");
@@ -29,6 +29,11 @@ public class EzRedisLibBukkit extends JavaPlugin {
         //bStats
         new Metrics(this, 15499);
 
+    }
+    @Override
+    public void onDisable() {
+        if(redisMessenger!=null)
+            redisMessenger.destroy();
     }
 
     private boolean reload() {

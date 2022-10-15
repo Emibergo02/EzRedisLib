@@ -33,9 +33,6 @@ public enum DefaultChannels {
     private final String name;
 
     DefaultChannels(String name) {
-        if(name.length() > 8) {
-            throw new IllegalArgumentException("Channel name cannot be longer than 8 characters.");
-        }
         this.name = name;
     }
 

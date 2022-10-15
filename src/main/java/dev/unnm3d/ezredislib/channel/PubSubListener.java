@@ -13,6 +13,7 @@ public class PubSubListener extends JedisPubSub {
     private final Class<?> filterClass;
     private final ReadPacketFunction rpf;
     private final String channelName;
+    private boolean isRunning = true;
 
 
     public PubSubListener(String channelName,ReadPacketFunction rpf) {
@@ -43,7 +44,12 @@ public class PubSubListener extends JedisPubSub {
     public @NotNull String getChannelName(){
         return channelName;
     }
-
+    public boolean getIsRunning() {
+        return isRunning;
+    }
+    public void close() {
+        this.isRunning = false;
+    }
     @FunctionalInterface
     public interface ReadPacketFunction {
         void read(Object message);

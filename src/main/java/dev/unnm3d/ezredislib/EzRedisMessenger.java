@@ -26,18 +26,17 @@ import dev.unnm3d.ezredislib.channel.PubSubListener;
 import dev.unnm3d.ezredislib.packet.MessagingPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import redis.clients.jedis.BinaryJedisPubSub;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.*;
+import java.util.function.Function;
 
 public class EzRedisMessenger {
 
@@ -57,7 +56,7 @@ public class EzRedisMessenger {
      * @throws InstantiationException If the connection to the redis server fails.
      */
     public EzRedisMessenger(@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
-        scheduler = Executors.newFixedThreadPool(4);
+        scheduler = Executors.newCachedThreadPool();
         pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, user, pass);
 
         if(!testConnection()){
@@ -71,7 +70,7 @@ public class EzRedisMessenger {
      * @throws InstantiationException If the connection to the redis server fails.
      */
     public EzRedisMessenger(@NotNull String host, int port) throws InstantiationException {
-        scheduler = new ForkJoinPool();
+        scheduler = Executors.newFixedThreadPool(4);
         pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, null, null);
 
         if(!testConnection()){
@@ -114,18 +113,12 @@ public class EzRedisMessenger {
      * @param channel The channel to listen to.
      * @return true if the channel is registered successfully.
      */
-    public boolean registerChannelListener(String channel, PubSubListener.ReadPacketFunction rpf) {
-        if (channel.trim().length() > 8) {
-            return false;
-        }
+    public PubSubListener registerChannelListener(String channel, PubSubListener.ReadPacketFunction rpf) {
         PubSubListener pubSubListener =new PubSubListener(channel,rpf);
         channelListeners.add(pubSubListener);
-        scheduler.execute(() ->{
-            try (Jedis jedis = pool.getResource()) {
-                jedis.subscribe(pubSubListener, channel);
-            }
-        });
-        return true;
+        scheduler.execute(()->subWithRestart(pubSubListener, channel));
+
+        return pubSubListener;
     }
     /**
      * Registers incoming channel packets
@@ -133,18 +126,12 @@ public class EzRedisMessenger {
      * @param channel The channel to listen to.
      * @return true if the channel is registered successfully.
      */
-    public boolean registerChannelListener(String channel, PubSubListener.ReadPacketFunction rpf,Class<?> classFilter) {
-        if (channel.trim().length() > 8) {
-            return false;
-        }
+    public PubSubListener registerChannelListener(String channel, PubSubListener.ReadPacketFunction rpf,Class<?> classFilter) {
         PubSubListener pubSubListener =new PubSubListener(channel,rpf,classFilter);
         channelListeners.add(pubSubListener);
-        scheduler.execute(() ->{
-            try (Jedis jedis = pool.getResource()) {
-                jedis.subscribe(pubSubListener, channel);
-            }
-        });
-        return true;
+        scheduler.execute(() -> subWithRestart(pubSubListener, channel));
+
+        return pubSubListener;
     }
     /**
      * Registers incoming channel packets
@@ -152,18 +139,42 @@ public class EzRedisMessenger {
      * @param rpf packet read function
      * @return true if the channel is registered successfully.
      */
-    public boolean registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf) {
-        if (channel.trim().length() > 8) {
-            return false;
-        }
-        PubSubObjectListener pubSubObjectListener =new PubSubObjectListener(rpf);
+    public PubSubObjectListener registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf) {
+        PubSubObjectListener pubSubObjectListener =new PubSubObjectListener(rpf,channel);
         channelByteListeners.add(pubSubObjectListener);
-        scheduler.execute(() ->{
+        scheduler.execute(() -> subWithRestart(pubSubObjectListener, channel.getBytes(StandardCharsets.US_ASCII)));
+        return pubSubObjectListener;
+    }
+
+    public void subWithRestart(PubSubListener psl,String channel){
+        if(!pool.isClosed())
             try (Jedis jedis = pool.getResource()) {
-                jedis.subscribe(pubSubObjectListener, channel.getBytes(StandardCharsets.US_ASCII));
+                System.out.println("Subscribing to channel "+channel);
+                try {
+                    jedis.subscribe(psl, channel);
+                }catch (Exception e){
+                    e.printStackTrace();
+                    jedis.quit();
+                    if(channelListeners.contains(psl))
+                        subWithRestart(psl,channel);
+                }
             }
-        });
-        return true;
+
+    }
+    public void subWithRestart(BinaryJedisPubSub psl, byte[] channel){
+        if(!pool.isClosed())
+            try (Jedis jedis = pool.getResource()) {
+                System.out.println("Subscribing to channel "+ Arrays.toString(channel));
+                try {
+                    jedis.subscribe(psl, channel);
+                }catch (Exception e){
+                    e.printStackTrace();
+                    jedis.quit();
+                    if(channelByteListeners.contains(psl))
+                        subWithRestart(psl,channel);
+                }
+            }
+
     }
 
     /**
@@ -173,18 +184,12 @@ public class EzRedisMessenger {
      * @param classFilter filters incoming packets. they must be subclasses of this class
      * @return true if the channel is registered successfully.
      */
-    public boolean registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf, Class<?> classFilter) {
-        if (channel.trim().length() > 8) {
-            return false;
-        }
-        PubSubObjectListener pubSubObjectListener =new PubSubObjectListener(rpf,classFilter);
+    public PubSubObjectListener registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf, Class<?> classFilter) {
+        PubSubObjectListener pubSubObjectListener =new PubSubObjectListener(rpf,classFilter,channel);
         channelByteListeners.add(pubSubObjectListener);
-        scheduler.execute(() ->{
-            try (Jedis jedis = pool.getResource()) {
-                jedis.subscribe(pubSubObjectListener, channel.getBytes(StandardCharsets.US_ASCII));
-            }
-        });
-        return true;
+        scheduler.execute(() -> subWithRestart(pubSubObjectListener, channel.getBytes(StandardCharsets.US_ASCII)));
+
+        return pubSubObjectListener;
     }
 
     /**
@@ -193,15 +198,20 @@ public class EzRedisMessenger {
      * @return true if the channel is unregistered successfully.
      */
     public boolean unregisterFromChannel(String channelName) {
-        if (channelName.trim().length() > 8) {
-            return false;
-        }
         Iterator<PubSubListener> listenerIterator=channelListeners.iterator();
         while(listenerIterator.hasNext()){
             PubSubListener listener=listenerIterator.next();
             if(listener.getChannelName().equals(channelName)){
                 listener.unsubscribe();
                 listenerIterator.remove();
+            }
+        }
+        Iterator<PubSubObjectListener> binaryListenerIterator=channelByteListeners.iterator();
+        while(listenerIterator.hasNext()){
+            PubSubObjectListener listener=binaryListenerIterator.next();
+            if(listener.getChannelName().equals(channelName)){
+                listener.unsubscribe();
+                binaryListenerIterator.remove();
             }
         }
 
@@ -242,11 +252,69 @@ public class EzRedisMessenger {
      * @return The redis connection.
      */
     public Jedis getJedis() {
+        if(pool.isClosed()){
+            throw new IllegalStateException("Redis pool is closed");
+        }
         return pool.getResource();
+    }
+
+    /**
+     * Returns resource requested in the function (with timeout 1)
+     * It is blocking operation
+     * @param thing jedis operation
+     * @param timeout timeout in milliseconds
+     * @param verbose if true, it will print stacktrace if error occurs
+     * @return result of the operation, null if timeouts or an error occurs
+     */
+    public <R> @Nullable R jedisResource(@NotNull Function<Jedis,R> thing,@NotNull long timeout,@NotNull boolean verbose){
+        try {
+            return CompletableFuture.supplyAsync(this::getJedis).thenApply(jedis -> {
+                R a=thing.apply(jedis);
+                jedis.close();
+                return a;
+            }).completeOnTimeout(null, timeout, TimeUnit.MILLISECONDS).get();
+        } catch (InterruptedException | ExecutionException e) {
+            if(verbose)
+                e.printStackTrace();
+            return null;
+        }
+    }
+    /**
+     * Returns resource requested in the function (with timeout 1)
+     * It is blocking operation
+     * Default verbose is false, timeout 1 second
+     * @param thing jedis operation
+     * @return result of the operation, null if timeouts or an error occurs
+     */
+    public <R> @Nullable R jedisResource(@NotNull Function<Jedis,R> thing){
+        return jedisResource(thing,1000,false);
+    }
+
+    /**
+     * Returns a future of the resource requested in the function
+     * @param thing jedis operation
+     * @param timeout timeout in milliseconds
+     * @return future of the result of the operation, null if timeouts or an error occurs
+     */
+    public <R> CompletableFuture<R> jedisResourceFuture(@NotNull Function<Jedis,R> thing,@NotNull long timeout) {
+        return CompletableFuture.supplyAsync(this::getJedis).thenApply(jedis -> {
+            R a=thing.apply(jedis);
+            jedis.close();
+            return a;
+        }).completeOnTimeout(null, timeout, TimeUnit.MILLISECONDS);
+    }
+    /**
+     * Returns a future of the resource requested in the function (with timeout 1)
+     * @param thing jedis operation
+     * @return future of the result of the operation, null if timeouts
+     */
+    public <R> CompletableFuture<R> jedisResourceFuture(@NotNull Function<Jedis,R> thing) {
+        return jedisResourceFuture(thing,1000);
     }
 
     public void destroy() {
         channelListeners.forEach(PubSubListener::unsubscribe);
+        channelByteListeners.forEach(BinaryJedisPubSub::unsubscribe);
         pool.close();
         scheduler.shutdown();
     }
@@ -259,7 +327,6 @@ public class EzRedisMessenger {
      */
     public long sendPacket(String channel, MessagingPacket message) {
             return publish(channel, message);
-
     }
 
     /**
@@ -329,24 +396,33 @@ public class EzRedisMessenger {
     }
 
     private long publish(String channel, @NotNull MessagingPacket message) {
-        try (Jedis jedis = pool.getResource()) {
-            return jedis.publish(channel, gson.toJson(message));
-        }catch (Exception exception){
-            exception.printStackTrace();
-            return 0;
-        }
+        if(!pool.isClosed())
+            try (Jedis jedis = pool.getResource()) {
+                return jedis.publish(channel, gson.toJson(message));
+            }catch (Exception exception){
+                exception.printStackTrace();
+                return 0;
+            }
+        return -1;
     }
     private long publishBytes(String channel, @NotNull Object objMessage) {
-        try (Jedis jedis = pool.getResource()) {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(objMessage);
-            oos.flush();
-            return jedis.publish(channel.getBytes(StandardCharsets.US_ASCII), bos.toByteArray());
-        }catch (Exception exception){
-            exception.printStackTrace();
-            return 0;
-        }
+        if(!pool.isClosed())
+            try (Jedis jedis = pool.getResource()) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(bos);
+                oos.writeObject(objMessage);
+                oos.flush();
+                return jedis.publish(channel.getBytes(StandardCharsets.US_ASCII), bos.toByteArray());
+            }catch (Exception exception){
+                exception.printStackTrace();
+                return 0;
+            }
+        return -1;
+    }
+    public String getThreadPoolStatus(){
+        ThreadPoolExecutor threadPoolExecutor=(ThreadPoolExecutor) scheduler;
+        return "Active: "+threadPoolExecutor.getActiveCount()+" Completed: "+threadPoolExecutor.getCompletedTaskCount()+" PoolSize: "+threadPoolExecutor.getPoolSize()+" QueueSize: "+threadPoolExecutor.getQueue().size()+" TaskCount: "+threadPoolExecutor.getTaskCount()+" MaxPoolSize: "+threadPoolExecutor.getMaximumPoolSize()+" CorePoolSize: "+threadPoolExecutor.getCorePoolSize()+" KeepAliveTime: "+threadPoolExecutor.getKeepAliveTime(TimeUnit.MILLISECONDS);
+
     }
 
 

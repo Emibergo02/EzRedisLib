@@ -12,16 +12,28 @@ public class PubSubObjectListener extends BinaryJedisPubSub {
 
     private final ReadPacketFunction rpf;
     private final Class<?> filterClass;
+    private final String channelName;
+    private boolean isRunning = true;
 
-    public PubSubObjectListener(ReadPacketFunction rpf) {
+    public PubSubObjectListener(ReadPacketFunction rpf,String channelName) {
         this.rpf=rpf;
         this.filterClass = null;
+        this.channelName= channelName;
     }
-    public PubSubObjectListener(ReadPacketFunction rpf, Class<?> filterClass) {
+    public PubSubObjectListener(ReadPacketFunction rpf, Class<?> filterClass,String channelName) {
         this.rpf=rpf;
         this.filterClass = filterClass;
+        this.channelName= channelName;
     }
-
+    public String getChannelName() {
+        return channelName;
+    }
+    public boolean getIsRunning() {
+        return isRunning;
+    }
+    public void close() {
+        this.isRunning = false;
+    }
 
     @Override
     public void onMessage(byte[] channel, byte[] message) {
