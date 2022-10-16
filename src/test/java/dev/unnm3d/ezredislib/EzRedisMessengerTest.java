@@ -2,7 +2,6 @@ package dev.unnm3d.ezredislib;
 
 import dev.unnm3d.ezredislib.channel.PubSubObjectListener;
 import dev.unnm3d.ezredislib.packet.MessagingPacket;
-import dev.unnm3d.ezredislib.packet.PingPacket;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -108,8 +107,28 @@ class EzRedisMessengerTest {
     }
 
     @org.junit.jupiter.api.Test
-    void destroy() {
+    void destroya() throws InterruptedException {
+        try {
+            ezRedisMessenger=new EzRedisMessenger("redis-15907.c55.eu-central-1-1.ec2.cloud.redislabs.com",15907,"default","cuz1K3qyH4ybQCtgDTb027eEV6xYBmUH",10000,0,"biagio");
+
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        }
+        CompletableFuture<Ciao> completableFuture=new CompletableFuture<>();
+        ezRedisMessenger.registerChannelObjectListener("test", (o) -> {
+        });
+        ezRedisMessenger.registerChannelObjectListener("test", (o) -> {
+        });
+        ezRedisMessenger.registerChannelObjectListener("test", (o) -> {
+
+            completableFuture.complete((Ciao)o);
+        },Ciao.class);
+        assertEquals(3,ezRedisMessenger.getChannelListeners("test").size());
+        Thread.sleep(1000);
         ezRedisMessenger.destroy();
+        ezRedisMessenger.sendObjectPacket("test",new Ciao("a","b",null));
+        assertEquals("timeout",completableFuture.completeOnTimeout(new Ciao("timeout","ciao",null), 2000, TimeUnit.MILLISECONDS).join().name);
+        assertEquals(0,ezRedisMessenger.getChannelListeners("test").size());
     }
 
 

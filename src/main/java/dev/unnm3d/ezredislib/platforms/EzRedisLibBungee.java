@@ -28,15 +28,15 @@ public class EzRedisLibBungee extends Plugin {
         int pluginId = 15499; // <-- Replace with the id of your plugin!
         new Metrics(this, pluginId);
         try {
-            if(reload())getLogger().info("Connection established");
+            if (reload()) getLogger().info("Connection established");
         } catch (IOException e) {
             e.printStackTrace();
         }
-        this.getProxy().getPluginManager().registerCommand(this, new Command("ezredislibreload","ezredislib.reload") {
+        this.getProxy().getPluginManager().registerCommand(this, new Command("ezredislibreload", "ezredislib.reload") {
             @Override
             public void execute(CommandSender commandSender, String[] strings) {
                 try {
-                    if(reload()) {
+                    if (reload()) {
                         commandSender.sendMessage("§bEzRedisLib reloaded. Connection to redis established.");
                     } else {
                         commandSender.sendMessage("§cError reloading RedisLib check the console");
@@ -54,10 +54,10 @@ public class EzRedisLibBungee extends Plugin {
         redisMessenger.destroy();
         try {
             Configuration configuration = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(getDataFolder(), "config.yml"));
-            String user= configuration.getString("redis.user", "");
-            String pass= configuration.getString("redis.password", "");
-            user= user.isBlank() ? null : user;
-            pass= pass.isBlank() ? null : pass;
+            String user = configuration.getString("redis.user", "");
+            String pass = configuration.getString("redis.password", "");
+            user = user.isBlank() ? null : user;
+            pass = pass.isBlank() ? null : pass;
             redisMessenger = new EzRedisMessenger(configuration.getString("redis.host", "127.0.0.1"), configuration.getInt("redis.port", 6379), user, pass);
             return true;
         } catch (InstantiationException e) {
@@ -65,6 +65,7 @@ public class EzRedisLibBungee extends Plugin {
             return false;
         }
     }
+
     public void makeConfig() throws IOException {
         // Create plugin config folder if it doesn't exist
         if (!getDataFolder().exists()) {

@@ -3,13 +3,13 @@ package dev.unnm3d.ezredislib;
 import org.jetbrains.annotations.NotNull;
 import redis.clients.jedis.JedisPoolConfig;
 
-import java.io.*;
 import java.time.Duration;
 
 public class RedisUtils {
 
     /**
      * Creates a new JedisPoolConfig with default parameters.
+     *
      * @return the generated config
      */
     public static @NotNull JedisPoolConfig buildPoolConfig() {
@@ -29,12 +29,13 @@ public class RedisUtils {
 
     /**
      * Creates a new JedisPoolConfig custom parameters
+     *
      * @param totalPoolConnections The maximum number of connections in the pool.
-     * @param maxIdleConnections The maximum number of idle connections in the pool.
-     * @param minIdleConnections The minimum number of idle connections in the pool.
+     * @param maxIdleConnections   The maximum number of idle connections in the pool.
+     * @param minIdleConnections   The minimum number of idle connections in the pool.
      * @return the generated config
      */
-    public static @NotNull JedisPoolConfig buildPoolConfig(int totalPoolConnections,int maxIdleConnections,int minIdleConnections) {
+    public static @NotNull JedisPoolConfig buildPoolConfig(int totalPoolConnections, int maxIdleConnections, int minIdleConnections) {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(totalPoolConnections);
         poolConfig.setMaxIdle(maxIdleConnections);
