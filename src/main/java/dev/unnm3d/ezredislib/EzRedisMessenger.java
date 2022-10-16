@@ -57,12 +57,36 @@ public class EzRedisMessenger {
      */
     public EzRedisMessenger(@NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
         scheduler = Executors.newCachedThreadPool();
+
         pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, user, pass);
 
         if(!testConnection()){
             throw new InstantiationException("Could not connect to redis server (down or inaccessible)");
         }
     }
+    /**
+     * Creates a new EzRedisMessenger.
+     * @param host The host of the redis server.
+     * @param port The port of the redis server.
+     * @param user The user of the redis server (null for none).
+     * @param password The password of the redis server (null for none).
+     * @param timeout Timeout of the connection if it is idle.
+     * @param database The database to use.
+     * @param clientName The name of the client.
+     * @throws InstantiationException If the connection to the redis server fails.
+     */
+    public EzRedisMessenger(@NotNull String host, int port, @Nullable String user, @Nullable String password,int timeout,int database,String clientName) throws InstantiationException {
+
+        scheduler = Executors.newCachedThreadPool();
+
+        pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, timeout, user, password, database, clientName);
+
+        if(!testConnection()){
+            throw new InstantiationException("Could not connect to redis server (down or inaccessible)");
+        }
+
+
+        }
     /**
      * Creates a new EzRedisMessenger.
      * @param host The host of the redis server.
@@ -124,7 +148,8 @@ public class EzRedisMessenger {
      * Registers incoming channel packets
      * @param rpf The packet listener.
      * @param channel The channel to listen to.
-     * @return true if the channel is registered successfully.
+     * @param classFilter The class of the incoming packets. No other class are permitted
+     * @return the PubSubListener registered
      */
     public PubSubListener registerChannelListener(String channel, PubSubListener.ReadPacketFunction rpf,Class<?> classFilter) {
         PubSubListener pubSubListener =new PubSubListener(channel,rpf,classFilter);
@@ -135,9 +160,9 @@ public class EzRedisMessenger {
     }
     /**
      * Registers incoming channel packets
-     * @param channel the channel to listen
-     * @param rpf packet read function
-     * @return true if the channel is registered successfully.
+     * @param rpf The packet listener.
+     * @param channel The channel to listen to.
+     * @return the PubSubObjectListener registered
      */
     public PubSubObjectListener registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf) {
         PubSubObjectListener pubSubObjectListener =new PubSubObjectListener(rpf,channel);
@@ -145,7 +170,10 @@ public class EzRedisMessenger {
         scheduler.execute(() -> subWithRestart(pubSubObjectListener, channel.getBytes(StandardCharsets.US_ASCII)));
         return pubSubObjectListener;
     }
-
+    /**
+     * Actual registration with subscription.
+     * Restarts on the same thread on error
+     */
     public void subWithRestart(PubSubListener psl,String channel){
         if(!pool.isClosed())
             try (Jedis jedis = pool.getResource()) {
@@ -161,6 +189,10 @@ public class EzRedisMessenger {
             }
 
     }
+    /**
+     * Actual registration with subscription.
+     * Restarts on the same thread on error
+     */
     public void subWithRestart(BinaryJedisPubSub psl, byte[] channel){
         if(!pool.isClosed())
             try (Jedis jedis = pool.getResource()) {
@@ -182,7 +214,7 @@ public class EzRedisMessenger {
      * @param channel the channel to listen
      * @param rpf packet read function
      * @param classFilter filters incoming packets. they must be subclasses of this class
-     * @return true if the channel is registered successfully.
+     * @return the PubSubObjectListener registered
      */
     public PubSubObjectListener registerChannelObjectListener(String channel, PubSubObjectListener.ReadPacketFunction rpf, Class<?> classFilter) {
         PubSubObjectListener pubSubObjectListener =new PubSubObjectListener(rpf,classFilter,channel);
@@ -207,7 +239,7 @@ public class EzRedisMessenger {
             }
         }
         Iterator<PubSubObjectListener> binaryListenerIterator=channelByteListeners.iterator();
-        while(listenerIterator.hasNext()){
+        while(binaryListenerIterator.hasNext()){
             PubSubObjectListener listener=binaryListenerIterator.next();
             if(listener.getChannelName().equals(channelName)){
                 listener.unsubscribe();
@@ -239,6 +271,11 @@ public class EzRedisMessenger {
      */
     public boolean isChannelRegistered(String channelName){
         for(PubSubListener listener:channelListeners){
+            if(listener.getChannelName().equals(channelName)){
+                return true;
+            }
+        }
+        for(PubSubObjectListener listener:channelByteListeners){
             if(listener.getChannelName().equals(channelName)){
                 return true;
             }

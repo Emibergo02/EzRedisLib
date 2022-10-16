@@ -44,9 +44,7 @@ public class PubSubObjectListener extends BinaryJedisPubSub {
                 if(!filterClass.isInstance(obj))return;
             }
             this.rpf.read(obj);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }

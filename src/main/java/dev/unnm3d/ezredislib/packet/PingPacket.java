@@ -7,10 +7,8 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashMap;
 
-public class PingPacket<T,K> implements MessagingPacket{
+public class PingPacket<T,K> implements MessagingPacket,Serializable{
 
-    @Serial
-    private static final long serialVersionUID = -6503226760990705061L;
     private final long timestamp;
     private final String from;
     private final String to;

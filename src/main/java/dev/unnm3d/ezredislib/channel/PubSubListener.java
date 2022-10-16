@@ -4,8 +4,6 @@ import com.google.gson.Gson;
 import org.jetbrains.annotations.NotNull;
 import redis.clients.jedis.JedisPubSub;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 
 public class PubSubListener extends JedisPubSub {
 
