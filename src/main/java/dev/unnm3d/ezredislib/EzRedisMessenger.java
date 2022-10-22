@@ -99,7 +99,7 @@ public class EzRedisMessenger {
      * @throws InstantiationException If the connection to the redis server fails.
      */
     public EzRedisMessenger(@NotNull String host, int port) throws InstantiationException {
-        scheduler = Executors.newFixedThreadPool(4);
+        scheduler = Executors.newCachedThreadPool();
         pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, null, null);
 
         if (!testConnection()) {
@@ -193,16 +193,21 @@ public class EzRedisMessenger {
         if (!pool.isClosed())
             try (Jedis jedis = pool.getResource()) {
                 System.out.println("Subscribing to channel " + channel);
+                jedis.subscribe(psl, channel);
+
+            }catch (Exception e){
+                e.printStackTrace();
+                System.out.println("Subscription error channel: " + channel+" retrying in 2 seconds");
                 try {
-                    jedis.subscribe(psl, channel);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    jedis.quit();
+                    Thread.sleep(2000);
+                    System.out.println(getThreadPoolStatus());
+                    System.out.println(getJedisPoolStatus());
                     if (channelListeners.stream().anyMatch(psl::equals))
                         subWithRestart(psl, channel);
+                } catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
                 }
             }
-
     }
 
     /**
@@ -213,13 +218,18 @@ public class EzRedisMessenger {
         if (!pool.isClosed())
             try (Jedis jedis = pool.getResource()) {
                 System.out.println("Subscribing to channel " + Arrays.toString(channel));
+                jedis.subscribe(psl, channel);
+            }catch (Exception e){//Restart on failure
+                e.printStackTrace();
+                System.out.println("Subscription error channel: " + new String(channel) +" retrying in 2 seconds");
                 try {
-                    jedis.subscribe(psl, channel);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    jedis.quit();
+                    Thread.sleep(2000);
+                    System.out.println(getThreadPoolStatus());
+                    System.out.println(getJedisPoolStatus());
                     if (channelListeners.stream().anyMatch(psl::equals))
                         subWithRestart(psl, channel);
+                } catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
                 }
             }
 
@@ -322,7 +332,7 @@ public class EzRedisMessenger {
         try {
             return CompletableFuture.supplyAsync(this::getJedis).thenApply(jedis -> {
                 R a = thing.apply(jedis);
-                jedis.close();
+                pool.returnResource(jedis);
                 return a;
             }).completeOnTimeout(null, timeout, TimeUnit.MILLISECONDS).get();
         } catch (InterruptedException | ExecutionException e) {
@@ -354,7 +364,7 @@ public class EzRedisMessenger {
     public <R> CompletableFuture<R> jedisResourceFuture(@NotNull Function<Jedis, R> thing, long timeout) {
         return CompletableFuture.supplyAsync(this::getJedis).thenApply(jedis -> {
             R a = thing.apply(jedis);
-            jedis.close();
+            pool.returnResource(jedis);
             return a;
         }).completeOnTimeout(null, timeout, TimeUnit.MILLISECONDS);
     }
@@ -471,6 +481,8 @@ public class EzRedisMessenger {
                 return jedis.publish(channel, gson.toJson(message));
             } catch (Exception exception) {
                 exception.printStackTrace();
+                System.out.println(getThreadPoolStatus());
+                System.out.println(getJedisPoolStatus());
                 return 0;
             }
         return -1;
@@ -486,6 +498,8 @@ public class EzRedisMessenger {
                 return jedis.publish(channel.getBytes(StandardCharsets.US_ASCII), bos.toByteArray());
             } catch (Exception exception) {
                 exception.printStackTrace();
+                System.out.println(getThreadPoolStatus());
+                System.out.println(getJedisPoolStatus());
                 return 0;
             }
         return -1;
@@ -495,6 +509,9 @@ public class EzRedisMessenger {
         ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) scheduler;
         return "Active: " + threadPoolExecutor.getActiveCount() + " Completed: " + threadPoolExecutor.getCompletedTaskCount() + " PoolSize: " + threadPoolExecutor.getPoolSize() + " QueueSize: " + threadPoolExecutor.getQueue().size() + " TaskCount: " + threadPoolExecutor.getTaskCount() + " MaxPoolSize: " + threadPoolExecutor.getMaximumPoolSize() + " CorePoolSize: " + threadPoolExecutor.getCorePoolSize() + " KeepAliveTime: " + threadPoolExecutor.getKeepAliveTime(TimeUnit.MILLISECONDS);
 
+    }
+    public String getJedisPoolStatus(){
+        return "Active: " + pool.getNumActive() + " Idle: " + pool.getNumIdle() + " MaxTotal: " + pool.getMaxTotal() + " MaxIdle: " + pool.getMaxIdle() + " MinIdle: " + pool.getMinIdle();
     }
 
 

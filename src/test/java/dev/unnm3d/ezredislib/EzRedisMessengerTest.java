@@ -36,6 +36,7 @@ class EzRedisMessengerTest {
             throw new RuntimeException(e);
         }
         CompletableFuture<String> completableFuture=new CompletableFuture<>();
+
         ezRedisMessenger.registerChannelListener("test", (o) -> {
             CiaoNotFinal pingPacket=(CiaoNotFinal) o;
             assertEquals("a", pingPacket.name);
@@ -62,6 +63,7 @@ class EzRedisMessengerTest {
             throw new RuntimeException(e);
         }
         CompletableFuture<String> completableFuture=new CompletableFuture<>();
+
         PubSubObjectListener pubSubObjectListener=ezRedisMessenger.registerChannelObjectListener("test", (o) -> {
             Ciao ciao=(Ciao) o;
             assertEquals("a", ciao.name);
