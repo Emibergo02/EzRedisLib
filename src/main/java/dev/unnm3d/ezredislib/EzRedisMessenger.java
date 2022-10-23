@@ -366,7 +366,10 @@ public class EzRedisMessenger {
             R a = thing.apply(jedis);
             pool.returnResource(jedis);
             return a;
-        }).completeOnTimeout(null, timeout, TimeUnit.MILLISECONDS);
+        }).completeOnTimeout(null, timeout, TimeUnit.MILLISECONDS).exceptionally(e -> {
+            e.printStackTrace();
+            return null;
+        });
     }
 
     /**
