@@ -6,9 +6,9 @@
 
     <groupId>dev.unnm3d.redislib</groupId>
     <artifactId>EzRedisLib</artifactId>
-    <version>3.1-SNAPSHOT</version>
+    <version>3.2-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <url>https://jitpack.io/#jitpack/EzRedisLib/3.1-SNAPSHOT</url>
+    <url>https://jitpack.io/#jitpack/EzRedisLib/3.2-SNAPSHOT</url>
     <repositories>
         <!-- This adds the Spigot Maven repository to the build -->
         <repository>
