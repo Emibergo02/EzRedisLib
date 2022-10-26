@@ -140,20 +140,6 @@ public class EzRedisMessenger {
         }
     }
 
-    /**
-     * Registers incoming channel packets
-     *
-     * @param rpf     The packet listener.
-     * @param channel The channel to listen to.
-     * @return true if the channel is registered successfully.
-     */
-    public PubSubJsonListener registerChannelListener(String channel, PubSubJsonListener.ReadPacketFunction rpf) {
-        PubSubJsonListener pubSubListener = new PubSubJsonListener(channel, rpf);
-        channelListeners.add(pubSubListener);
-        scheduler.execute(() -> subWithRestart(pubSubListener, channel));
-
-        return pubSubListener;
-    }
 
     /**
      * Registers incoming channel packets
@@ -332,7 +318,7 @@ public class EzRedisMessenger {
         try {
             return CompletableFuture.supplyAsync(this::getJedis).thenApply(jedis -> {
                 R a = thing.apply(jedis);
-                pool.returnResource(jedis);
+                jedis.close();
                 return a;
             }).completeOnTimeout(null, timeout, TimeUnit.MILLISECONDS).get();
         } catch (InterruptedException | ExecutionException e) {
@@ -364,7 +350,7 @@ public class EzRedisMessenger {
     public <R> CompletableFuture<R> jedisResourceFuture(@NotNull Function<Jedis, R> thing, long timeout) {
         return CompletableFuture.supplyAsync(this::getJedis).thenApply(jedis -> {
             R a = thing.apply(jedis);
-            pool.returnResource(jedis);
+            jedis.close();
             return a;
         }).completeOnTimeout(null, timeout, TimeUnit.MILLISECONDS).exceptionally(e -> {
             e.printStackTrace();
@@ -481,7 +467,9 @@ public class EzRedisMessenger {
     private long publish(String channel, @NotNull MessagingPacket message) {
         if (!pool.isClosed())
             try (Jedis jedis = pool.getResource()) {
-                return jedis.publish(channel, gson.toJson(message));
+                long returned=jedis.publish(channel, gson.toJson(message));
+                jedis.close();
+                return returned;
             } catch (Exception exception) {
                 exception.printStackTrace();
                 System.out.println(getThreadPoolStatus());
@@ -498,7 +486,9 @@ public class EzRedisMessenger {
                 ObjectOutputStream oos = new ObjectOutputStream(bos);
                 oos.writeObject(objMessage);
                 oos.flush();
-                return jedis.publish(channel.getBytes(StandardCharsets.US_ASCII), bos.toByteArray());
+                long returned=jedis.publish(channel.getBytes(StandardCharsets.US_ASCII), bos.toByteArray());
+                jedis.close();
+                return returned;
             } catch (Exception exception) {
                 exception.printStackTrace();
                 System.out.println(getThreadPoolStatus());
