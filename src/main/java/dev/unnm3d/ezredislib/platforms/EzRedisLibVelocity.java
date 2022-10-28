@@ -10,8 +10,8 @@ import org.bstats.velocity.Metrics;
 import javax.inject.Inject;
 import java.util.logging.Logger;
 
-@Plugin(id = "ezredislib", name = "EzRedisLib", version = "1.1-SNAPSHOT",
-        url = "https://github.com/Emibergo02/EzRedisLib", description = "Velocity implementation", authors = {"unnm3d"})
+//@Plugin(id = "ezredislib", name = "EzRedisLib", version = "1.1-SNAPSHOT",
+//        url = "https://github.com/Emibergo02/EzRedisLib", description = "Velocity implementation", authors = {"unnm3d"})
 public class EzRedisLibVelocity {
 
     private final Metrics.Factory metricsFactory;

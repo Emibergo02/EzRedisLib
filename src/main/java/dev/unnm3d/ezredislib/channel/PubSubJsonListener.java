@@ -13,12 +13,6 @@ public class PubSubJsonListener extends JedisPubSub implements PubSubListener {
     private final String channelName;
 
 
-    public PubSubJsonListener(String channelName, ReadPacketFunction rpf) {
-        this.channelName = channelName;
-        this.rpf = rpf;
-        this.filterClass = null;
-    }
-
     public PubSubJsonListener(String channelName, ReadPacketFunction rpf, Class<?> filterClass) {
         this.channelName = channelName;
         this.rpf = rpf;
@@ -27,11 +21,7 @@ public class PubSubJsonListener extends JedisPubSub implements PubSubListener {
 
     @Override
     public void onMessage(String channel, String message) {
-        Object o = gson.fromJson(message, this.filterClass);
-        if (filterClass != null) {
-            if (!filterClass.isInstance(o)) return;
-        }
-        rpf.read(o);
+        rpf.read(gson.fromJson(message, this.filterClass));
     }
 
 

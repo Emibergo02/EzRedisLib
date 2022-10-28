@@ -17,6 +17,7 @@ public class RedisUtils {
         poolConfig.setMaxTotal(128);
         poolConfig.setMaxIdle(32);
         poolConfig.setMinIdle(16);
+        poolConfig.setMaxWait(Duration.ofSeconds(10));
         poolConfig.setTestOnBorrow(true);
         poolConfig.setTestOnReturn(true);
         poolConfig.setTestWhileIdle(true);
@@ -40,6 +41,7 @@ public class RedisUtils {
         poolConfig.setMaxTotal(totalPoolConnections);
         poolConfig.setMaxIdle(maxIdleConnections);
         poolConfig.setMinIdle(minIdleConnections);
+        poolConfig.setMaxWait(Duration.ofSeconds(10));
         poolConfig.setTestOnBorrow(true);
         poolConfig.setTestOnReturn(true);
         poolConfig.setTestWhileIdle(true);

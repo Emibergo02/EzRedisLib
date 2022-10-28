@@ -36,6 +36,7 @@ class EzRedisMessengerTest {
             throw new RuntimeException(e);
         }
         CompletableFuture<String> completableFuture=new CompletableFuture<>();
+
         ezRedisMessenger.registerChannelListener("test", (o) -> {
             CiaoNotFinal pingPacket=(CiaoNotFinal) o;
             assertEquals("a", pingPacket.name);
@@ -62,6 +63,7 @@ class EzRedisMessengerTest {
             throw new RuntimeException(e);
         }
         CompletableFuture<String> completableFuture=new CompletableFuture<>();
+
         PubSubObjectListener pubSubObjectListener=ezRedisMessenger.registerChannelObjectListener("test", (o) -> {
             Ciao ciao=(Ciao) o;
             assertEquals("a", ciao.name);
@@ -124,11 +126,38 @@ class EzRedisMessengerTest {
             completableFuture.complete((Ciao)o);
         },Ciao.class);
         assertEquals(3,ezRedisMessenger.getChannelListeners("test").size());
+        ezRedisMessenger.sendObjectPacket("test",new Ciao("a","b",null));
+        System.out.println(ezRedisMessenger.getJedisPoolStatus());
+ezRedisMessenger.sendObjectPacket("test",new Ciao("a","b",null));
+        System.out.println(ezRedisMessenger.getJedisPoolStatus());
+ezRedisMessenger.sendObjectPacket("test",new Ciao("a","b",null));
+        System.out.println(ezRedisMessenger.getJedisPoolStatus());
+ezRedisMessenger.sendObjectPacket("test",new Ciao("a","b",null));
+        System.out.println(ezRedisMessenger.getJedisPoolStatus());
+ezRedisMessenger.sendObjectPacket("test",new Ciao("a","b",null));
+        System.out.println(ezRedisMessenger.getJedisPoolStatus());
+        for(int i=0;i<10000;i++) {
+            Thread.sleep(5);
+            ezRedisMessenger.sendObjectPacketAsync("test",new Ciao("a","b",null));
+            ezRedisMessenger.jedisResourceFuture(jedis->jedis.set("bella","ciao"));
+            ezRedisMessenger.jedisResourceFuture(jedis->jedis.get("bella"));
+            if(i%100==0)
+                System.out.println(ezRedisMessenger.getJedisPoolStatus());
+        }
+
+        for(int i=0;i<10;i++) {
+            Thread.sleep(10);
+            ezRedisMessenger.sendObjectPacketAsync("test",new Ciao("a","b",null));
+            System.out.println(ezRedisMessenger.getJedisPoolStatus());
+        }
         Thread.sleep(1000);
+        System.out.println(ezRedisMessenger.getJedisPoolStatus());
         ezRedisMessenger.destroy();
         ezRedisMessenger.sendObjectPacket("test",new Ciao("a","b",null));
+        Thread.sleep(1000);
         assertEquals("timeout",completableFuture.completeOnTimeout(new Ciao("timeout","ciao",null), 2000, TimeUnit.MILLISECONDS).join().name);
         assertEquals(0,ezRedisMessenger.getChannelListeners("test").size());
+        System.out.println(ezRedisMessenger.getJedisPoolStatus());
     }
 
 
