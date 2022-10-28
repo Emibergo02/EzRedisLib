@@ -56,10 +56,10 @@ allprojects {
 }
 ```
 
-Add the dependency and replace `3.0-SNAPSHOT` with the latest release version:
+Add the dependency and replace `3.3-SNAPSHOT` with the latest release version:
 ```gradle
 dependencies {
-        implementation 'com.github.Emibergo02:EzRedisLib:3.0-SNAPSHOT'
+        implementation 'com.github.Emibergo02:EzRedisLib:3.3-SNAPSHOT'
 }
 ```
 
