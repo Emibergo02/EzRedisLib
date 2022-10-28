@@ -41,7 +41,7 @@ Add the dependency and replace `<version>...</version>` with the latest release 
 <dependency>
   <groupId>com.github.Emibergo02</groupId>
   <artifactId>EzRedisLib</artifactId>
-  <version>3.0-SNAPSHOT</version>
+  <version>3.3-SNAPSHOT</version>
 </dependency>
 ```
 
