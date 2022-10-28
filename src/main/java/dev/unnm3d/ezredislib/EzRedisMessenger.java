@@ -79,7 +79,6 @@ public class EzRedisMessenger {
      * @throws InstantiationException If the connection to the redis server fails.
      */
     public EzRedisMessenger(@NotNull String host, int port, @Nullable String user, @Nullable String password, int timeout, int database, String clientName) throws InstantiationException {
-
         scheduler = Executors.newCachedThreadPool();
 
         pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, timeout, user, password, database, clientName);
@@ -89,6 +88,28 @@ public class EzRedisMessenger {
         }
 
 
+    }
+    /**
+     * Creates a new EzRedisMessenger.
+     *
+     * @param config     The pool config.
+     * @param host       The host of the redis server.
+     * @param port       The port of the redis server.
+     * @param user       The user of the redis server (null for none).
+     * @param password   The password of the redis server (null for none).
+     * @param timeout    Timeout of the connection if it is idle.
+     * @param database   The database to use.
+     * @param clientName The name of the client.
+     * @throws InstantiationException If the connection to the redis server fails.
+     */
+    public EzRedisMessenger(@NotNull JedisPoolConfig config,@NotNull String host, int port, @Nullable String user, @Nullable String password, int timeout, int database, String clientName) throws InstantiationException {
+        scheduler = Executors.newCachedThreadPool();
+
+        pool = new JedisPool(config, host, port, timeout, user, password, database, clientName);
+
+        if (!testConnection()) {
+            throw new InstantiationException("Could not connect to redis server (down or inaccessible)");
+        }
     }
 
     /**
@@ -100,6 +121,7 @@ public class EzRedisMessenger {
      */
     public EzRedisMessenger(@NotNull String host, int port) throws InstantiationException {
         scheduler = Executors.newCachedThreadPool();
+
         pool = new JedisPool(RedisUtils.buildPoolConfig(), host, port, null, null);
 
         if (!testConnection()) {
@@ -119,6 +141,7 @@ public class EzRedisMessenger {
      */
     public EzRedisMessenger(@NotNull JedisPoolConfig poolConfig, @NotNull String host, int port, @Nullable String user, @Nullable String pass) throws InstantiationException {
         scheduler = Executors.newCachedThreadPool();
+
         pool = new JedisPool(poolConfig, host, port, user, pass);
 
         if (!testConnection()) {
@@ -302,7 +325,9 @@ public class EzRedisMessenger {
         if (pool.isClosed()) {
             throw new IllegalStateException("Redis pool is closed");
         }
-        return pool.getResource();
+        try(Jedis jedis = pool.getResource()){
+            return jedis;
+        }
     }
 
     /**
@@ -504,7 +529,22 @@ public class EzRedisMessenger {
 
     }
     public String getJedisPoolStatus(){
-        return "Active: " + pool.getNumActive() + " Idle: " + pool.getNumIdle() + " MaxTotal: " + pool.getMaxTotal() + " MaxIdle: " + pool.getMaxIdle() + " MinIdle: " + pool.getMinIdle();
+        JedisPoolConfig poolConfig = RedisUtils.buildPoolConfig();
+
+        int active = pool.getNumActive();
+        int idle = pool.getNumIdle();
+        int total = active + idle;
+
+        return String.format(
+                "JedisPool: Active=%d, Idle=%d, Waiters=%d, total=%d, maxTotal=%d, minIdle=%d, maxIdle=%d",
+                active,
+                idle,
+                pool.getNumWaiters(),
+                total,
+                poolConfig.getMaxTotal(),
+                poolConfig.getMinIdle(),
+                poolConfig.getMaxIdle()
+        );
     }
 
 
