@@ -59,41 +59,40 @@ allprojects {
 Add the dependency and replace `3.3-SNAPSHOT` with the latest release version:
 ```gradle
 dependencies {
-        implementation 'com.github.Emibergo02:EzRedisLib:3.3-SNAPSHOT'
+  implementation 'com.github.Emibergo02:EzRedisLib:3.3-SNAPSHOT'
 }
 ```
 
 ## Main usage
 
 ```java
-        //MAIN ACCESS POINTS
-        int timeout = 0;//Connection timeout (0 for no timeout)
-        int database = 0;//Redis resource database (default is 0)
-        RedisMessagingHandler redisMessagingHandler = new RedisMessagingHandler("localhost", 6379, "user", "password",0,0);
-        //Initializes redis connection pool
-        
-        //Register listener on channel (there is an example below)
-        redisMessagingHandler.registerChannelObjectListener(....
-        
-        
-        //sends packet        
-        redisMessagingHandler.sendPacket("channel1", new PingPacket("client1", "client2"));
-        
-        //You can use Jedis normally with
-        redisMessagingHandler.getJedis().get("key");
-        
-        //Or with a CompletableFuture blocking request with timeout (true if you want Exceptions to be printed)
-        redisMessagingHandler.jedisResource(jedis -> jedis.smembers("kalyachat_playerlist") ,1000,true);
-        //The same but more compact and simplified
-        redisMessagingHandler.jedisResource(jedis -> jedis.smembers("kalyachat_playerlist"));
-        
-        //Or with a non-blocking CompletableFuture!
-        redisMessagingHandler.jedisResourceFuture(jedis -> jedis.smembers("kalyachat_playerlist"),1000);
-        redisMessagingHandler.jedisResourceFuture(jedis -> jedis.smembers("kalyachat_playerlist")).thenApply(stringSet-> 
-            System.out.println("Is empty?: "+stringSet.isEmpty()));
-            return stringSet;
-            );
-        
+// Main Access Points
+int timeout = 0; // Connection timeout (0 for no timeout)
+int database = 0; // Redis resource database (default is 0)
+
+// Initializes redis connection pool
+RedisMessagingHandler redisMessagingHandler = new RedisMessagingHandler("localhost", 6379, "user", "password", 0, 0);
+
+// Register listener on channel (there is an example below)
+redisMessagingHandler.registerChannelObjectListener(...);
+
+
+// Sends a packet        
+redisMessagingHandler.sendPacket("channel1", new PingPacket("client1", "client2"));
+
+// You can use Jedis normally with
+redisMessagingHandler.getJedis().get("key");
+// Or with a CompletableFuture blocking request with timeout (true if you want Exceptions to be printed)
+redisMessagingHandler.jedisResource(jedis -> jedis.smembers("kalyachat_playerlist"), 1000, true);
+// The same but more compact and simplified
+redisMessagingHandler.jedisResource(jedis -> jedis.smembers("kalyachat_playerlist"));
+
+// Or with a non-blocking CompletableFuture!
+redisMessagingHandler.jedisResourceFuture(jedis -> jedis.smembers("kalyachat_playerlist"), 1000);
+redisMessagingHandler.jedisResourceFuture(jedis -> jedis.smembers("kalyachat_playerlist")).thenApply(stringSet-> 
+    System.out.println("Is empty?: "+stringSet.isEmpty()));
+    return stringSet;
+);
 ```
 
 ## Example of a packet
@@ -106,49 +105,46 @@ import ezredislib.packet.MessagingPacket;
  * MessagingPacket is for JSON serialization
  * Serializable is for Java Object serialization
  */
-public class QualcosaPacket implements MessagingPacket, Serializable {
+public class MyPacket implements MessagingPacket, Serializable {
+    private final long timestamp;
+    private final String from;
+    private final String to;
 
-        private final long timestamp;
-        private final String from;
-        private final String to;
-
-        public QualcosaPacket(String from,String to) {
-            this.from= from;
-            this.to= to;
-            this.timestamp = System.currentTimeMillis();
-        }
+    public MyPacket(String from, String to) {
+        this.from = from;
+        this.to = to;
+        this.timestamp = System.currentTimeMillis();
+    }
 
 
-        public String getTarget() {
-            return this.to;
-        }
+    public String getTarget() {
+        return this.to;
+    }
 
-        public String getSender() {
-            return this.from;
-        }
+    public String getSender() {
+        return this.from;
+    }
 
-        public long getTimestamp() {
-            return timestamp;
-        }
+    public long getTimestamp() {
+        return timestamp;
+    }
 }
 ```
 
 ## Example of registering an Object channel
 
 ```java
-       ezRedisMessenger.registerChannelObjectListener(Channel.CHAT.getChannelName(), (packet) -> {
+ezRedisMessenger.registerChannelObjectListener(Channel.CHAT.getChannelName(), (packet) -> {
+    ChatPacket chatPacket = (ChatPacket) packet;
 
-            ChatPacket chatPacket = (ChatPacket) packet;
-
-            if (chatPacket.isPrivate()) {
-                if(!KalyaChat.getInstance().getRedisDataManager().isIgnoring(chatPacket.getReceiverName(),chatPacket.getSenderName()))//Check ignoring
-                    KalyaChat.getInstance().getChatListener().onPrivateChat(chatPacket.getSenderName(), chatPacket.getReceiverName(), chatPacket.getMessage());
-            } else {
-                KalyaChat.getInstance().getChatListener().onPublicChat(chatPacket.getMessage());
-            }
-
-        }, ChatPacket.class);
+    if (chatPacket.isPrivate()) {
+        if(!KalyaChat.getInstance().getRedisDataManager().isIgnoring(chatPacket.getReceiverName(),chatPacket.getSenderName())) //Check ignoring
+            KalyaChat.getInstance().getChatListener().onPrivateChat(chatPacket.getSenderName(), chatPacket.getReceiverName(), chatPacket.getMessage());
+    } else {
+        KalyaChat.getInstance().getChatListener().onPublicChat(chatPacket.getMessage());
+    }
+}, ChatPacket.class);
 ```
 
 ## Support
-Feel free to contact me for every problem here in the issues or on discord https://discord.gg/vfWt3pPw
+Feel free to contact me for every problem here in the issues or on discord `Unnm3d#6063`
